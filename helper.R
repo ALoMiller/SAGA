@@ -16,8 +16,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   # *********** sql queries ***************#
   #Stratum information required to stratify (stratum area, etc)
-  strata <- paste0('0', strata)
-  stratum.sizes.q <- paste("select stratum, stratum_area, strgrp_desc, stratum_name from svmstrata where STRATUM IN ('", 
+  strata <- ifelse(nchar(strata)<5,paste0('0', strata),strata) #fix for when this is run twice - it adds another 0 and causes many errors
+  stratum.sizes.q <- paste("select stratum, stratum_area, strgrp_desc, stratum_name from svdbs.svmstrata where STRATUM IN ('", 
                            paste(strata, collapse = "','"), "')"," order by stratum", sep = '')
   str.size <- sqlQuery(oc,stratum.sizes.q)
   print(str.size)
@@ -26,7 +26,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   #STATION location data 
   q.sta <- paste("select cruise6, stratum, tow, station, shg, svvessel, svgear, est_year, est_month, est_day, ",
                  "substr(est_time,1,2) || substr(est_time,4,2) as time, towdur, dopdistb, dopdistw, avgdepth, ",
-                 "area, bottemp, beglat, beglon from union_fscs_svsta ",
+                 "area, bottemp, beglat, beglon from svdbs.union_fscs_svsta ",
                   "where cruise6 = ", survey
                  #this would only get one year of survey data! option to fix below
                  #"where cruise6 in ('", paste(survey, collapse = "','"), "')"
@@ -37,7 +37,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   sta.view <- cbind(sta.view, temp[,-1])
   
   #CATCH data
-  q.cat <- paste("select cruise6, stratum, tow, station, svspp, catchsex, expcatchwt, expcatchnum from union_fscs_svcat ",
+  q.cat <- paste("select cruise6, stratum, tow, station, svspp, catchsex, expcatchwt, expcatchnum from svdbs.union_fscs_svcat ",
                  "where cruise6 = ", survey
                  #this would only get one year of survey data! option to fix below
                  #"where cruise6 in ('", paste(survey, collapse = "','"), "')"
@@ -80,64 +80,68 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   #variance covariance matrix of each catch variable (why do we need covariance?)
   S.n.w.stratum <- t(sapply(str.size$STRATUM, 
                             function(x) var(catch.data[which(catch.data$STRATUM== x),c('EXPCATCHNUM','EXPCATCHWT')])))
-  #weighting factor for each stratum (area of stratum/area sampled)
+  #weighting factor for each stratum (area of stratum/area sampled) * effort
   N.W.hat.stratum <- M * samp.tot.n.w/m
+  #variance weighting factor
   Vhat.N.W.hat.stratum <- M^2 * (1 - m/M) * S.n.w.stratum/m
   n.strata <- length(M)
-  print(4)
   
   if(do.length){
-    #LENGTH
-    q.len <- paste("select  cruise6, stratum, tow, station, catchsex, length, expnumlen from union_fscs_svlen " ,
+    #LENGTH from sql
+    q.len <- paste("select  cruise6, stratum, tow, station, catchsex, length, expnumlen from svdbs.union_fscs_svlen " ,
                    "where cruise6 = ", survey, " and STRATUM IN('", paste(strata, collapse = "','"), "')",
                    "and svspp = ", spp, " order by cruise6, stratum, tow, station, svspp, catchsex", sep = '')
     len.view <- sqlQuery(oc,q.len)
     len.data <- merge(catch.data, len.view, by = c('CRUISE6','STRATUM','TOW','STATION','CATCHSEX'),  all.x=T, all.y = F)
     len.data$EXPNUMLEN[is.na(len.data$EXPNUMLEN)] <- 0
+    #check to see if the entire length comp is is sample per user bounds
     if(max(len.data$LENGTH, na.rm= T) > max(lengths)) warning(paste('max of lengths in length data = ', max(len.data$LENGTH, na.rm= T), ' whereas max of lengths given is ', max(lengths), sep = ''))
-    
-    samp.tot.nal <- sapply(lengths, function(x) sapply(str.size$STRATUM, function(y) sum(len.data$EXPNUMLEN[len.data$STRATUM == y & len.data$LENGTH == x],
-                                                                                         na.rm = TRUE)))
+    #nested sapply! This sums the numbers at length in each stratum over each of the user specified lengths
+    #result is a matrix with a row for each stratum and a col for each length
+    samp.tot.nal <- sapply(lengths, function(x) sapply(str.size$STRATUM
+                    , function(y) sum(len.data$EXPNUMLEN[len.data$STRATUM == y & len.data$LENGTH == x],na.rm = TRUE)))
+    #Apply the stratum weights to these
     Nal.hat.stratum <- M * samp.tot.nal/m
-    #		print(Nal.hat.stratum)
-    #		print(cbind(apply(Nal.hat.stratum,1,sum), N.W.hat.stratum))
-    S.nal.stratum <- t(sapply(str.size$STRATUM, function(x){
-      x.dat <- len.data[which(len.data$STRATUM == x),]
-      if(dim(x.dat)[1]){
-        nal.by.tow <- t(sapply(unique(x.dat$TOW), function(y){
-          if(sum(x.dat$TOW == y)){
+    #Now we need to get the variances - triple nested sapply!
+    S.nal.stratum <- t(sapply(str.size$STRATUM, function(x){ #The function below is applied over each strata
+      x.dat <- len.data[which(len.data$STRATUM == x),] #len.data is the merged catch data (has location, etc) and the length data
+      if(dim(x.dat)[1]){ #if there are observations in len.data that match the stratum being tested this will be T 
+        nal.by.tow <- t(sapply(unique(x.dat$TOW), function(y){ #for each unique tow...
+          if(sum(x.dat$TOW == y)){ #I think this has to always be T, unless x.dat$TOW is a factor or something? 
+            #generate a sum of the number of fish at each length from the user specified lengths this will also generate 0s for 
+            #empty lengths
             nal.tow <- sapply(lengths, function(z) sum(x.dat$EXPNUMLEN[which(x.dat$LENGTH == z & x.dat$TOW == y)], na.rm = TRUE))
           }
-          else nal.tow <- rep(0,length(lengths))
+          else nal.tow <- rep(0,length(lengths)) #May not be needed?
           return(nal.tow)
         }))
-        cov.nal <- cov(nal.by.tow)
+        cov.nal <- cov(nal.by.tow) #since we have all the zeroes filled in we can generate a covariance
         return(cov.nal)
       }
       else return(matrix(NA,length(lengths),length(lengths)))
     }))
-    Vhat.Nal.stratum <- M^2 * (1 - m/M) * S.nal.stratum/m
-    print(5)
+    Vhat.Nal.stratum <- M^2 * (1 - m/M) * S.nal.stratum/m #Apply the weighting factors to the variances
     
     
     if(do.age){
       #AGE
-      q.age <- paste("select  cruise6, stratum, tow, station, sex, length, age, indwt, maturity from union_fscs_svbio ",
+      q.age <- paste("select  cruise6, stratum, tow, station, sex, length, age, indwt, maturity from svdbs.union_fscs_svbio ",
                      "where cruise6 = ", survey, " and STRATUM IN('", paste(strata, collapse = "','"), "')",
                      "and svspp = ", spp, " and age is not null order by cruise6, stratum, tow, station", sep = '')
       age.view <- sqlQuery(oc,q.age)
       age.data <- merge(len.data, age.view, by = c('CRUISE6','STRATUM','TOW','STATION','LENGTH'),  all.x = T, all.y=F)
+      #This is incomplete I think....
     }
   }
   
-  
-  
-  out <- cbind(stratum = str.size$STRATUM, M = M, m = m, mean.n.w.per.tow = N.W.hat.stratum/M, V.mean.n.w.per.tow = Vhat.N.W.hat.stratum/(M^2))
+  #data.frame of stratified indices and variances 
+  out <- cbind(stratum = str.size$STRATUM, M = M, m = m, mean.n.w.per.tow = N.W.hat.stratum/M
+               , V.mean.n.w.per.tow = Vhat.N.W.hat.stratum/(M^2))
   out <- list(out = out)
   out$stratum.size <- str.size
   if(do.length) {
-    out$Nal.hat.stratum = Nal.hat.stratum
-    out$V.Nal.stratum = Vhat.Nal.stratum
+    out$Nal.hat.stratum = Nal.hat.stratum #Indices by length
+    out$V.Nal.stratum = Vhat.Nal.stratum #variances by length
   }
   if(do.age) out$age.data <- age.data
   return(out)
