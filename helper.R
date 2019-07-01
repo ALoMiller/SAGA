@@ -51,9 +51,6 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   catch.data$EXPCATCHNUM[is.na(catch.data$EXPCATCHNUM)] <- 0
   catch.data$EXPCATCHWT[is.na(catch.data$EXPCATCHWT)] <- 0
   
-  print(spp);print(paste(strata, collapse = "','"));print(survey)
-  print(catch.data)
-  
   #gear conversion - expand catch using a particular gear by the gear conversion factor.
   if(any(catch.data$SVGEAR %in% c(41,45))) { #This is an error trap for no gear of this type being in catch data
     catch.data$EXPCATCHNUM[which(is.element(catch.data$SVGEAR, c(41,45)))] <- 
