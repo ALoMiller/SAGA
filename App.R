@@ -8,9 +8,8 @@ library(webshot)
 library(htmlwidgets)
 library(ggplot2)
 
-
-Sys.setenv(ORACLE_HOME="/ora1/app/oracle/product/11.2.0/dbhome_1")
 source("chooser.R") 
+Sys.setenv(ORACLE_HOME="/ora1/app/oracle/product/11.2.0/dbhome_1")
 species <- read.csv('files/speciesTable.csv')
 spp.list <- split(species$SVSPP,species$COMNAME)
 strata.list <- read.csv('files/StrataList.csv')
@@ -85,11 +84,10 @@ ui <-
           tabName = "indices",                        #SAGA clone application user options 
             fluidRow(
               column(4,
-                     h5(strong("Select strata:")),
-                     chooserInput("mychooser", "Available frobs", "Selected frobs",
+                     chooserInput("mychooser", "Available frobs", "Selected frobs", #new custom widget strata selection using chooser.R
                        strata.list[,1], c(), size = 10, multiple = TRUE
                      ),
-                     verbatimTextOutput("strata.selection"),
+                     #verbatimTextOutput("selection"),
                      #selectInput("strata", "Select strata:",                #strata selection (switch to custom widget)
                     #             choices=strata.list[,1],
                     #             multiple=TRUE),
@@ -102,8 +100,6 @@ ui <-
                                   choices = list("SPRING" = 1, "FALL" = 2), 
                                   selected = 1),
                      
-                     #textInput("year", "Enter year:",                   #year input - change to map slider selections?
-                     #           value=""),
                      sliderInput("years2", "Select range of year(s)",            #Years slider
                                 min = 1950, 
                                 max = 2019,
@@ -128,13 +124,8 @@ ui <-
                      #download data
                      downloadButton('downloadData', 'Download Data')
                      
-              ),
-            column(7,
-                   textOutput("ss") #,          #What is this?
-                   #textOutput(sum(apply(x.out$Nal.hat.stratum,2,sum, na.rm = TRUE))/sum(x.out$out$M[which(x$out$m>0)]))#aggregate number per tow (for a given year), accounting for unsampled strata
-                   
-
-            )
+              )
+            
           ),
           # Show a plot of the generated survey indices by strata 
           tabPanel("N (all sizes and ages) by strata",
@@ -147,13 +138,11 @@ ui <-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 server = function(input, output, session){
   source("helper.R")  #moved the stratification calculation function out the server function for ease of reading the code
-  output$strata.selection <- renderPrint(
-    input$mychooser$right
+  #it is now in helper.R
+  output$selection <- renderPrint(
+    input$mychooser
   )
   observeEvent(input$runBtn,{ #if run button is pushed:
-    # output$ss <-  renderText({
-    #  as.character(saved.strata$YourStrata[!is.na(saved.strata$YourStrata)])
-    # })
     #grab cruise6 from the rows with matching season and year
     cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season & 
                                         survey.cruises$YEAR %in% seq(min(input$years2),max(input$years2))]
@@ -161,7 +150,7 @@ server = function(input, output, session){
     #strata.in = paste(input$strata, collapse = "','")
     #strata.in <- input$strata #the strata selected by the user
     strata.in <- input$mychooser$right
-    #print(strata.in)
+    print(strata.in)
     #print(as.character(input$strata))
     print(seq(min(input$years2),max(input$years2)))
     #print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season ])
