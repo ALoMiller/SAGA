@@ -92,7 +92,7 @@ ui <-
                                  selected = "BLACK SEA BASS"),
                      
                      radioButtons("season", "Choose season:",               #species radio buttons - switch map check boxes to these?
-                                  choices = list("SPRING" = 1, "FALL" = 2), 
+                                  choices = list("SPRING" = 2, "FALL" = 1), 
                                   selected = 1),
                      
                      #textInput("year", "Enter year:",                   #year input - change to map slider selections?
@@ -153,14 +153,15 @@ server = function(input, output){
     strata.in <- input$strata #the strata selected by the user
     #print(strata.in)
     #print(as.character(input$strata))
-    print(seq(min(input$years2),max(input$years2)))
+    #print(seq(min(input$years2),max(input$years2)))
     #print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season ])
+    print(input)
     if(length(cruise6)>0){
       x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
-                                                survey = cruise6, 
+                                                survey = 200904, # cruise6,  #
                                                 oc = sole, 
-                                                strata = strata.in,
-                                                lengths = 1:34, 
+                                                strata =strata.in,   #c('1260','1270')  ,     #
+                                                lengths = 50:60, 
                                                 do.length = TRUE, 
                                                 do.age = FALSE, 
                                                 gcf = 1, 
@@ -173,7 +174,7 @@ server = function(input, output){
       #plot the indices for something to look at after a successful run
       if(!is.na(x.out)) {
         output$myPlots <- renderPlot({
-          plot1 <- ggplot(as.data.frame(x.out$Nal.hat.stratum), aes(x=rowSums(Nal.hat.stratum), y=strata.in)) +
+          plot1 <- ggplot(as.data.frame(x.out$out), aes(x=EXPCATCHNUM, y=strata.in)) +
             geom_line() +
             theme_bw()
           print(plot1)
@@ -186,7 +187,7 @@ server = function(input, output){
     #develop sql query for data using input criteria
     q.sta <- paste0("select id, cruise6, stratum, tow, station, shg, svvessel, svgear, est_year, est_month, est_day, ",
                     "substr(est_time,1,2) || substr(est_time,4,2) as time, towdur, dopdistb, dopdistw, avgdepth, ",
-                    "area, bottemp, botsalin, decdeg_beglat, decdeg_beglon from union_fscs_svsta ",
+                    "area, bottemp, botsalin, decdeg_beglat, decdeg_beglon from svdbs.union_fscs_svsta ",
                     "where cruise6 IN (", paste(c(fall.cruises,spring.cruises), collapse = ','), ")",
                     " and shg<= '136' and est_year between " , input$years[1], " AND ", input$years[2], " order by cruise6, stratum, tow, station")
     sta.view <- sqlQuery(sole,q.sta, as.is = c(TRUE, rep(FALSE,22))) 
@@ -194,7 +195,7 @@ server = function(input, output){
     sta.view$SEASON[sta.view$CRUISE6 %in% fall.cruises] <- 'FALL'
     print(table(sta.view$SEASON))  
     print(head(sta.view))
-    q.cat <- paste0("select id, cruise6, stratum, tow, station, svspp, catchsex, expcatchwt, expcatchnum from union_fscs_svcat ",
+    q.cat <- paste0("select id, cruise6, stratum, tow, station, svspp, catchsex, expcatchwt, expcatchnum from svdbs.union_fscs_svcat ",
                     "where cruise6 IN (", paste(c(fall.cruises,spring.cruises), collapse = ','), ")",
                     "and svspp = ", species$SVSPP[species$COMNAME==input$species], " order by cruise6, stratum, tow, station", sep = '')
     cat.view <- sqlQuery(sole,q.cat, as.is = c(TRUE, rep(FALSE,8)))
