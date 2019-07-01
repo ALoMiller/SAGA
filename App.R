@@ -172,8 +172,13 @@ server = function(input, output, session){
       #plot the indices for something to look at after a successful run
       if(!is.na(x.out)) {
         output$myPlots <- renderPlot({
-          plot1 <- ggplot(as.data.frame(x.out$Nal.hat.stratum), aes(x=rowSums(Nal.hat.stratum), y=strata.in)) +
-            geom_line() +
+          
+          plot1 <- ggplot(as.data.frame(x.out$out), aes(x=stratum, y= EXPCATCHNUM)) +
+              geom_bar(stat="identity") +
+          
+
+            # plot1 <- ggplot(as.data.frame(x.out$Nal.hat.stratum), aes(x=rowSums(Nal.hat.stratum), y=strata.in)) +
+            # geom_line() +
             theme_bw()
           print(plot1)
         })
