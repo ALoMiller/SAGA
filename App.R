@@ -87,13 +87,13 @@ ui <-
                                  choices=strata.list[,1],
                                  multiple=TRUE),
                      
-                     selectInput("species", "Select species:",              #Species drop menu
+                     selectInput("species2", "Select species:",              #Species drop menu
                                  choices =  species$COMNAME, 
                                  selected = "BLACK SEA BASS"),
                      
-                     radioButtons("season", "Choose season:",               #species radio buttons - switch map check boxes to these?
-                                  choices = list("SPRING" = 2, "FALL" = 1), 
-                                  selected = 1),
+                     radioButtons("season2", "Choose season:",               #species radio buttons - switch map check boxes to these?
+                                  choices = list("SPRING" = "SPRING", "FALL" = "FALL"), 
+                                  selected = "SPRING"),
                      
                      #textInput("year", "Enter year:",                   #year input - change to map slider selections?
                      #           value=""),
@@ -146,21 +146,27 @@ server = function(input, output){
     #  as.character(saved.strata$YourStrata[!is.na(saved.strata$YourStrata)])
     # })
     #grab cruise6 from the rows with matching season and year
-    cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season & 
+    cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season2 & 
                                         survey.cruises$YEAR %in% seq(min(input$years2),max(input$years2))]
-    spp <- species$SVSPP[species$COMNAME == input$species] #species name as well
+    spp <- species$SVSPP[species$COMNAME == input$species2] #species name as well
     #strata.in = paste(input$strata, collapse = "','")
     strata.in <- input$strata #the strata selected by the user
     #print(strata.in)
     #print(as.character(input$strata))
     #print(seq(min(input$years2),max(input$years2)))
     #print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season ])
-    print(input)
+    #print(input)
+    cat("spp choice: ",spp,input$species2,"\n")
+    cat("years choice: ",cruise6,input$years2,"\n")
+    cat("strata choice: ",strata.in,input$strata,"\n")
+    cat("season choice: ",input$season2,"\n")  
+    
     if(length(cruise6)>0){
+      
       x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
-                                                survey = 200904, # cruise6,  #
+                                                survey =  cruise6,  #"200904", #
                                                 oc = sole, 
-                                                strata =strata.in,   #c('1260','1270')  ,     #
+                                                strata = strata.in,   #  c('1260','1270')  ,     #
                                                 lengths = 50:60, 
                                                 do.length = TRUE, 
                                                 do.age = FALSE, 
@@ -172,10 +178,10 @@ server = function(input, output){
       #print(class(x.out))
       print(str(x.out))
       #plot the indices for something to look at after a successful run
-      if(!is.na(x.out)) {
+      if(!is.na(x.out[[2]][1,1])) {
         output$myPlots <- renderPlot({
-          plot1 <- ggplot(as.data.frame(x.out$out), aes(x=EXPCATCHNUM, y=strata.in)) +
-            geom_line() +
+          plot1 <- ggplot(as.data.frame(x.out$out), aes(x=stratum, y= EXPCATCHNUM)) +
+            geom_bar(stat="identity") +
             theme_bw()
           print(plot1)
         })
