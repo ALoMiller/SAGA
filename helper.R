@@ -20,7 +20,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   stratum.sizes.q <- paste("select stratum, stratum_area, strgrp_desc, stratum_name from svdbs.svmstrata where STRATUM IN ('", 
                            paste(strata, collapse = "','"), "')"," order by stratum", sep = '')
   str.size <- sqlQuery(oc,stratum.sizes.q)
-  print(str.size)
+  #print(str.size)
   str.size$NTOWS <- str.size$STRATUM_AREA/tow_swept_area
 
   #STATION location data 
@@ -51,30 +51,37 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   catch.data$EXPCATCHNUM[is.na(catch.data$EXPCATCHNUM)] <- 0
   catch.data$EXPCATCHWT[is.na(catch.data$EXPCATCHWT)] <- 0
   
-  #gear conversion - expand catch using a particular gear by the gear conversion factor.
-  catch.data$EXPCATCHNUM[which(is.element(catch.data$SVGEAR, c(41,45)))] <- 
-    gcf * catch.data$EXPCATCHNUM[which(is.element(catch.data$SVGEAR, c(41,45)))]
-  catch.data$EXPCATCHWT[which(is.element(catch.data$SVGEAR, c(41,45)))] <- 
-    gcf * catch.data$EXPCATCHWT[which(is.element(catch.data$SVGEAR, c(41,45)))]
-
-  #door conversion 
-  catch.data$EXPCATCHNUM[which(catch.data$YEAR< 1985)] <- 
-    dcf * catch.data$EXPCATCHNUM[which(catch.data$YEAR< 1985)]
-  catch.data$EXPCATCHWT[which(catch.data$YEAR< 1985)] <- 
-    dcf * catch.data$EXPCATCHWT[which(catch.data$YEAR< 1985)]
-
-  #vessel conversion
-  catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')] <- 
-    vcf * catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')]
-  catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')] <- 
-    vcf * catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')]
+  print(spp);print(paste(strata, collapse = "','"));print(survey)
+  print(catch.data)
   
+  #gear conversion - expand catch using a particular gear by the gear conversion factor.
+  if(any(catch.data$SVGEAR %in% c(41,45))) { #This is an error trap for no gear of this type being in catch data
+    catch.data$EXPCATCHNUM[which(is.element(catch.data$SVGEAR, c(41,45)))] <- 
+      gcf * catch.data$EXPCATCHNUM[which(is.element(catch.data$SVGEAR, c(41,45)))]
+    catch.data$EXPCATCHWT[which(is.element(catch.data$SVGEAR, c(41,45)))] <- 
+      gcf * catch.data$EXPCATCHWT[which(is.element(catch.data$SVGEAR, c(41,45)))]
+  }
+  #door conversion 
+  if(any(catch.data$YEAR< 1985)) { #This is an error trap for no years < 1985
+    catch.data$EXPCATCHNUM[which(catch.data$YEAR< 1985)] <- 
+      dcf * catch.data$EXPCATCHNUM[which(catch.data$YEAR< 1985)]
+    catch.data$EXPCATCHWT[which(catch.data$YEAR< 1985)] <- 
+      dcf * catch.data$EXPCATCHWT[which(catch.data$YEAR< 1985)]
+  }
+  #vessel conversion
+  if(any(catch.data$SVVESSEL == 'DE')) { #This is an error trap for no DE vessel observations in catch data
+    catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')] <- 
+      vcf * catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')]
+    catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')] <- 
+      vcf * catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')]
+  }
   #Extract the number of stations in each selected stratum in the selected years
   m <- sapply(str.size$STRATUM, function(x) sum(sta.view$STRATUM == x))
   M <- str.size$NTOWS #This is the proportional relationship between the area of the stratum and area of a tow...
   #not sure what this is doing as towarea is set to .01
   
   #This is a sum of the catch over each stratum
+  print(catch.data[which(catch.data$STRATUM%in%str.size$STRATUM),c('EXPCATCHNUM','EXPCATCHWT')])
   samp.tot.n.w <- t(sapply(str.size$STRATUM, 
                            function(x) apply(catch.data[which(catch.data$STRATUM== x),c('EXPCATCHNUM','EXPCATCHWT')],2,sum)))
   #variance covariance matrix of each catch variable (why do we need covariance?)
