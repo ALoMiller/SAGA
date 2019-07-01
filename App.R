@@ -8,6 +8,7 @@ library(webshot)
 library(htmlwidgets)
 library(ggplot2)
 
+
 Sys.setenv(ORACLE_HOME="/ora1/app/oracle/product/11.2.0/dbhome_1")
 species <- read.csv('files/speciesTable.csv')
 spp.list <- split(species$SVSPP,species$COMNAME)
@@ -83,6 +84,10 @@ ui <-
           tabName = "indices",                        #SAGA clone application user options 
             fluidRow(
               column(4,
+                     chooserInput("mychooser", "Available frobs", "Selected frobs",
+                       row.names(USArrests), c(), size = 10, multiple = TRUE
+                     ),
+                     verbatimTextOutput("selection"),
                      selectInput("strata", "Select strata:",                #strata selection (switch to custom widget)
                                  choices=strata.list[,1],
                                  multiple=TRUE),
@@ -138,9 +143,12 @@ ui <-
     )
   )
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-server = function(input, output){
+server = function(input, output, session){
   source("helper.R")  #moved the stratification calculation function out the server function for ease of reading the code
-  #it is now in helper.R
+  source("chooser.R") #it is now in helper.R
+  output$selection <- renderPrint(
+    input$mychooser
+  )
   observeEvent(input$runBtn,{ #if run button is pushed:
     # output$ss <-  renderText({
     #  as.character(saved.strata$YourStrata[!is.na(saved.strata$YourStrata)])
