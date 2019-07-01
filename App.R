@@ -10,6 +10,7 @@ library(ggplot2)
 
 
 Sys.setenv(ORACLE_HOME="/ora1/app/oracle/product/11.2.0/dbhome_1")
+source("chooser.R") 
 species <- read.csv('files/speciesTable.csv')
 spp.list <- split(species$SVSPP,species$COMNAME)
 strata.list <- read.csv('files/StrataList.csv')
@@ -84,21 +85,22 @@ ui <-
           tabName = "indices",                        #SAGA clone application user options 
             fluidRow(
               column(4,
+                     h5(strong("Select strata:")),
                      chooserInput("mychooser", "Available frobs", "Selected frobs",
-                       row.names(USArrests), c(), size = 10, multiple = TRUE
+                       strata.list[,1], c(), size = 10, multiple = TRUE
                      ),
-                     verbatimTextOutput("selection"),
-                     selectInput("strata", "Select strata:",                #strata selection (switch to custom widget)
-                                 choices=strata.list[,1],
-                                 multiple=TRUE),
+                     verbatimTextOutput("strata.selection"),
+                     #selectInput("strata", "Select strata:",                #strata selection (switch to custom widget)
+                    #             choices=strata.list[,1],
+                    #             multiple=TRUE),
                      
-                     selectInput("species2", "Select species:",              #Species drop menu
+                     selectInput("species", "Select species:",              #Species drop menu
                                  choices =  species$COMNAME, 
                                  selected = "BLACK SEA BASS"),
                      
-                     radioButtons("season2", "Choose season:",               #species radio buttons - switch map check boxes to these?
-                                  choices = list("SPRING" = "SPRING", "FALL" = "FALL"), 
-                                  selected = "SPRING"),
+                     radioButtons("season", "Choose season:",               #species radio buttons - switch map check boxes to these?
+                                  choices = list("SPRING" = 1, "FALL" = 2), 
+                                  selected = 1),
                      
                      #textInput("year", "Enter year:",                   #year input - change to map slider selections?
                      #           value=""),
@@ -145,37 +147,30 @@ ui <-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 server = function(input, output, session){
   source("helper.R")  #moved the stratification calculation function out the server function for ease of reading the code
-  source("chooser.R") #it is now in helper.R
-  output$selection <- renderPrint(
-    input$mychooser
+  output$strata.selection <- renderPrint(
+    input$mychooser$right
   )
   observeEvent(input$runBtn,{ #if run button is pushed:
     # output$ss <-  renderText({
     #  as.character(saved.strata$YourStrata[!is.na(saved.strata$YourStrata)])
     # })
     #grab cruise6 from the rows with matching season and year
-    cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season2 & 
+    cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season & 
                                         survey.cruises$YEAR %in% seq(min(input$years2),max(input$years2))]
-    spp <- species$SVSPP[species$COMNAME == input$species2] #species name as well
+    spp <- species$SVSPP[species$COMNAME == input$species] #species name as well
     #strata.in = paste(input$strata, collapse = "','")
-    strata.in <- input$strata #the strata selected by the user
+    #strata.in <- input$strata #the strata selected by the user
+    strata.in <- input$mychooser$right
     #print(strata.in)
     #print(as.character(input$strata))
-    #print(seq(min(input$years2),max(input$years2)))
+    print(seq(min(input$years2),max(input$years2)))
     #print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season ])
-    #print(input)
-    cat("spp choice: ",spp,input$species2,"\n")
-    cat("years choice: ",cruise6,input$years2,"\n")
-    cat("strata choice: ",strata.in,input$strata,"\n")
-    cat("season choice: ",input$season2,"\n")  
-    
     if(length(cruise6)>0){
-      
       x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
-                                                survey =  cruise6,  #"200904", #
+                                                survey = cruise6, 
                                                 oc = sole, 
-                                                strata = strata.in,   #  c('1260','1270')  ,     #
-                                                lengths = 50:60, 
+                                                strata = strata.in,
+                                                lengths = 1:48, 
                                                 do.length = TRUE, 
                                                 do.age = FALSE, 
                                                 gcf = 1, 
@@ -186,10 +181,10 @@ server = function(input, output, session){
       #print(class(x.out))
       print(str(x.out))
       #plot the indices for something to look at after a successful run
-      if(!is.na(x.out[[2]][1,1])) {
+      if(!is.na(x.out)) {
         output$myPlots <- renderPlot({
-          plot1 <- ggplot(as.data.frame(x.out$out), aes(x=stratum, y= EXPCATCHNUM)) +
-            geom_bar(stat="identity") +
+          plot1 <- ggplot(as.data.frame(x.out$Nal.hat.stratum), aes(x=rowSums(Nal.hat.stratum), y=strata.in)) +
+            geom_line() +
             theme_bw()
           print(plot1)
         })
@@ -201,7 +196,7 @@ server = function(input, output, session){
     #develop sql query for data using input criteria
     q.sta <- paste0("select id, cruise6, stratum, tow, station, shg, svvessel, svgear, est_year, est_month, est_day, ",
                     "substr(est_time,1,2) || substr(est_time,4,2) as time, towdur, dopdistb, dopdistw, avgdepth, ",
-                    "area, bottemp, botsalin, decdeg_beglat, decdeg_beglon from svdbs.union_fscs_svsta ",
+                    "area, bottemp, botsalin, decdeg_beglat, decdeg_beglon from union_fscs_svsta ",
                     "where cruise6 IN (", paste(c(fall.cruises,spring.cruises), collapse = ','), ")",
                     " and shg<= '136' and est_year between " , input$years[1], " AND ", input$years[2], " order by cruise6, stratum, tow, station")
     sta.view <- sqlQuery(sole,q.sta, as.is = c(TRUE, rep(FALSE,22))) 
@@ -209,7 +204,7 @@ server = function(input, output, session){
     sta.view$SEASON[sta.view$CRUISE6 %in% fall.cruises] <- 'FALL'
     print(table(sta.view$SEASON))  
     print(head(sta.view))
-    q.cat <- paste0("select id, cruise6, stratum, tow, station, svspp, catchsex, expcatchwt, expcatchnum from svdbs.union_fscs_svcat ",
+    q.cat <- paste0("select id, cruise6, stratum, tow, station, svspp, catchsex, expcatchwt, expcatchnum from union_fscs_svcat ",
                     "where cruise6 IN (", paste(c(fall.cruises,spring.cruises), collapse = ','), ")",
                     "and svspp = ", species$SVSPP[species$COMNAME==input$species], " order by cruise6, stratum, tow, station", sep = '')
     cat.view <- sqlQuery(sole,q.cat, as.is = c(TRUE, rep(FALSE,8)))
