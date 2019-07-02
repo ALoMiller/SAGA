@@ -124,13 +124,16 @@ ui <-
                      #download data
                      downloadButton('downloadData', 'Download Data')
                      
-              )
+              ),
+              column(7,
+                plotOutput("myPlots")
+                )
             
-          ),
-          # Show a plot of the generated survey indices by strata 
-          tabPanel("N (all sizes and ages) by strata",
-                 plotOutput("myPlots")
           )
+          # Show a plot of the generated survey indices by strata 
+          #tabPanel("N (all sizes and ages) by strata",
+           #      plotOutput("myPlots")
+          #)
         )
       )
     )
@@ -150,7 +153,7 @@ server = function(input, output, session){
     #strata.in = paste(input$strata, collapse = "','")
     #strata.in <- input$strata #the strata selected by the user
     strata.in <- input$mychooser$right
-    
+    len.range <- c(input$minLength:input$maxLength)
     #Check user inputs
     print(strata.in)
     print(seq(min(input$years2),max(input$years2)))

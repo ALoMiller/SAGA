@@ -5,7 +5,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                                               survey = NULL, 
                                               oc = sole, 
                                               strata = NULL,
-                                              lengths = 1:34, 
+                                              lengths = NULL, 
                                               do.length = TRUE, 
                                               do.age = FALSE, 
                                               gcf = 1,  #gear conversion factor
@@ -108,6 +108,10 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     #result is a matrix with a row for each stratum and a col for each length
     samp.tot.nal <- sapply(lengths, function(x) sapply(str.size$STRATUM
                     , function(y) sum(len.data$EXPNUMLEN[len.data$STRATUM == y & len.data$LENGTH == x],na.rm = TRUE)))
+    rownames(samp.tot.nal) <- as.character(strata)
+    colnames(samp.tot.nal) <- as.character(lengths)
+    print(head(len.data))
+    print(samp.tot.nal)
     #Apply the stratum weights to these
     Nal.hat.stratum <- M * samp.tot.nal/m
     #Now we need to get the variances - triple nested sapply!
@@ -129,6 +133,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       }
       else return(matrix(NA,length(lengths),length(lengths)))
     }))
+    print(Nal.hat.stratum)
+    print(S.nal.stratum)
     Vhat.Nal.stratum <- M^2 * (1 - m/M) * S.nal.stratum/m #Apply the weighting factors to the variances
     
     
