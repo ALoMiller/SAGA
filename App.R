@@ -98,7 +98,7 @@ ui <-
                      
                      radioButtons("season2", "Choose season:",               #species radio buttons - switch map check boxes to these?
                                   choices = list("SPRING" = "SPRING", "FALL" = "FALL"), 
-                                  selected = 1),
+                                  selected = "SPRING"),
                      
                      sliderInput("years2", "Select range of year(s)",            #Years slider
                                 min = 1950, 
@@ -150,12 +150,14 @@ server = function(input, output, session){
     #strata.in = paste(input$strata, collapse = "','")
     #strata.in <- input$strata #the strata selected by the user
     strata.in <- input$mychooser$right
+    
+    #Check user inputs
     print(strata.in)
     print(seq(min(input$years2),max(input$years2)))
     print(cruise6)
     print(spp)
-    print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season2 ])
-    print(survey.cruises$CRUISE6[survey.cruises$YEAR %in% seq(min(input$years2),max(input$years2))])
+    #print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season2 ])
+    #print(survey.cruises$CRUISE6[survey.cruises$YEAR %in% seq(min(input$years2),max(input$years2))])
     
     if(length(cruise6)>0){
       x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
@@ -173,7 +175,7 @@ server = function(input, output, session){
       #print(class(x.out))
       print(str(x.out))
       #plot the indices for something to look at after a successful run
-      if(!is.na(x.out)) {
+      if(!is.na(x.out[[2]][1,1])) { #Check to make sure x.out was loaded before attempting to plot
         output$myPlots <- renderPlot({
           
           plot1 <- ggplot(as.data.frame(x.out$out), aes(x=stratum, y= EXPCATCHNUM)) +
