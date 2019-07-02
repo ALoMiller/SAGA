@@ -78,12 +78,16 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   #not sure what this is doing as towarea is set to .01
   
   #This is a sum of the catch over each stratum
-  print(catch.data[which(catch.data$STRATUM%in%str.size$STRATUM),c('EXPCATCHNUM','EXPCATCHWT')])
+  #print(catch.data[which(catch.data$STRATUM%in%str.size$STRATUM),c('EXPCATCHNUM','EXPCATCHWT')])
   samp.tot.n.w <- t(sapply(str.size$STRATUM, 
                            function(x) apply(catch.data[which(catch.data$STRATUM== x),c('EXPCATCHNUM','EXPCATCHWT')],2,sum)))
   #variance covariance matrix of each catch variable (why do we need covariance?)
   S.n.w.stratum <- t(sapply(str.size$STRATUM, 
                             function(x) var(catch.data[which(catch.data$STRATUM== x),c('EXPCATCHNUM','EXPCATCHWT')])))
+  #We only need the variances so drop the covariance cols
+  S.n.w.stratum <- S.n.w.stratum[,c(1,4)] #NEED TO CHECK THESE AGAINST KNOWN VARIANCES!!!
+  
+  
   #weighting factor for each stratum (area of stratum/area sampled) * effort
   N.W.hat.stratum <- M * samp.tot.n.w/m
   #variance weighting factor
@@ -119,7 +123,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
           else nal.tow <- rep(0,length(lengths)) #May not be needed?
           return(nal.tow)
         }))
-        cov.nal <- cov(nal.by.tow) #since we have all the zeroes filled in we can generate a covariance
+        cov.nal <- diag(cov(nal.by.tow)) #since we have all the zeroes filled in we can generate a covariance, but we only want
+        #the main diagonal of this matrix (I think) #NEED TO CHECK THESE VARIANCE TERMS AGAINST A KNOWN SOLUTION!!!
         return(cov.nal)
       }
       else return(matrix(NA,length(lengths),length(lengths)))
@@ -134,7 +139,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                      "and svspp = ", spp, " and age is not null order by cruise6, stratum, tow, station", sep = '')
       age.view <- sqlQuery(oc,q.age)
       age.data <- merge(len.data, age.view, by = c('CRUISE6','STRATUM','TOW','STATION','LENGTH'),  all.x = T, all.y=F)
-      #This is incomplete I think....
+      #This is incomplete - all it does is collect the age data and merge it with the station data....
     }
   }
   
