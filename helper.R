@@ -110,13 +110,16 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                     , function(y) sum(len.data$EXPNUMLEN[len.data$STRATUM == y & len.data$LENGTH == x],na.rm = TRUE)))
     rownames(samp.tot.nal) <- as.character(strata)
     colnames(samp.tot.nal) <- as.character(lengths)
-    print(head(len.data))
-    print(samp.tot.nal)
+    #print(head(len.data))
+    #print(samp.tot.nal)
     #Apply the stratum weights to these
     Nal.hat.stratum <- M * samp.tot.nal/m
+    #Remove NA
+    Nal.hat.stratum[is.na(Nal.hat.stratum)] <- 0 
     #Now we need to get the variances - triple nested sapply!
+    #This will produce nonsense if there are strata selected with no observations!!
     S.nal.stratum <- t(sapply(str.size$STRATUM, function(x){ #The function below is applied over each strata
-      x.dat <- len.data[which(len.data$STRATUM == x),] #len.data is the merged catch data (has location, etc) and the length data
+      x.dat <- len.data[which(len.data$STRATUM == x & !is.na(len.data$LENGTH)),] #len.data is the merged catch data (has location, etc) and the length data
       if(dim(x.dat)[1]){ #if there are observations in len.data that match the stratum being tested this will be T 
         nal.by.tow <- t(sapply(unique(x.dat$TOW), function(y){ #for each unique tow...
           if(sum(x.dat$TOW == y)){ #I think this has to always be T, unless x.dat$TOW is a factor or something? 
@@ -124,17 +127,21 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
             #empty lengths
             nal.tow <- sapply(lengths, function(z) sum(x.dat$EXPNUMLEN[which(x.dat$LENGTH == z & x.dat$TOW == y)], na.rm = TRUE))
           }
-          else nal.tow <- rep(0,length(lengths)) #May not be needed?
+          else nal.tow <- rep(0,length(lengths)) #fill with zeroes
           return(nal.tow)
         }))
         cov.nal <- diag(cov(nal.by.tow)) #since we have all the zeroes filled in we can generate a covariance, but we only want
         #the main diagonal of this matrix (I think) #NEED TO CHECK THESE VARIANCE TERMS AGAINST A KNOWN SOLUTION!!!
+        #cov.nal[is.na(cov.nal)]= 0
+        #cov.nal=diag(cov.nal)
         return(cov.nal)
       }
-      else return(matrix(NA,length(lengths),length(lengths)))
+      #else return(matrix(0,length(lengths),length(lengths))) 
+      else return(matrix(NA,1,length(lengths))) #only returning the main diagonal so this should be 1 row
     }))
     print(Nal.hat.stratum)
     print(S.nal.stratum)
+    
     Vhat.Nal.stratum <- M^2 * (1 - m/M) * S.nal.stratum/m #Apply the weighting factors to the variances
     
     

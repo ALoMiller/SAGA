@@ -186,7 +186,7 @@ server = function(input, output, session){
         #Take the important parts from x.out to generate an index over time.
         Yeari=as.integer(substr(paste(cruise6[i]),1,4))
         Tows=sum(x.out$out[,"m"]) #number of tows in the year in question
-        Ind.out<-rbind(Ind.out,c(Yeari,Tows,colSums(x.out$out[,c(4:7)]))) #grab the Num,Wt,varNum,VarWt
+        Ind.out<-rbind(Ind.out,c(Yeari,Tows,colSums(x.out$out[,c(4:7)][!is.na(x.out$out[,4]),]))) #grab the Num,Wt,varNum,VarWt
         
         IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum)))
         
