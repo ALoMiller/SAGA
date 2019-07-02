@@ -92,12 +92,12 @@ ui <-
                     #             choices=strata.list[,1],
                     #             multiple=TRUE),
                      
-                     selectInput("species", "Select species:",              #Species drop menu
+                     selectInput("species2", "Select species:",              #Species drop menu
                                  choices =  species$COMNAME, 
                                  selected = "BLACK SEA BASS"),
                      
-                     radioButtons("season", "Choose season:",               #species radio buttons - switch map check boxes to these?
-                                  choices = list("SPRING" = 1, "FALL" = 2), 
+                     radioButtons("season2", "Choose season:",               #species radio buttons - switch map check boxes to these?
+                                  choices = list("SPRING" = "SPRING", "FALL" = "FALL"), 
                                   selected = 1),
                      
                      sliderInput("years2", "Select range of year(s)",            #Years slider
@@ -144,16 +144,19 @@ server = function(input, output, session){
   )
   observeEvent(input$runBtn,{ #if run button is pushed:
     #grab cruise6 from the rows with matching season and year
-    cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season & 
+    cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season2 & 
                                         survey.cruises$YEAR %in% seq(min(input$years2),max(input$years2))]
-    spp <- species$SVSPP[species$COMNAME == input$species] #species name as well
+    spp <- species$SVSPP[species$COMNAME == input$species2] #species name as well
     #strata.in = paste(input$strata, collapse = "','")
     #strata.in <- input$strata #the strata selected by the user
     strata.in <- input$mychooser$right
     print(strata.in)
-    #print(as.character(input$strata))
     print(seq(min(input$years2),max(input$years2)))
-    #print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season ])
+    print(cruise6)
+    print(spp)
+    print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season2 ])
+    print(survey.cruises$CRUISE6[survey.cruises$YEAR %in% seq(min(input$years2),max(input$years2))])
+    
     if(length(cruise6)>0){
       x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
                                                 survey = cruise6, 
