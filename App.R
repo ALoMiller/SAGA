@@ -160,32 +160,57 @@ server = function(input, output, session){
     #print(survey.cruises$CRUISE6[survey.cruises$YEAR %in% seq(min(input$years2),max(input$years2))])
     
     if(length(cruise6)>0){
-      x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
-                                                survey = cruise6, 
-                                                oc = sole, 
-                                                strata = strata.in,
-                                                lengths = 1:48, 
-                                                do.length = TRUE, 
-                                                do.age = FALSE, 
-                                                gcf = 1, 
-                                                dcf = 1, 
-                                                vcf = 1, 
-                                                tow_swept_area = 0.01)
-      #print(names(x.out))
-      #print(class(x.out))
-      print(str(x.out))
+      Ind.out=c();IAL.out=c();
+      for(i in 1:length(cruise6)) {
+        x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
+                                                  survey = cruise6[i], 
+                                                  oc = sole, 
+                                                  strata = strata.in,
+                                                  lengths = 1:48, 
+                                                  do.length = TRUE, 
+                                                  do.age = FALSE, 
+                                                  gcf = 1, 
+                                                  dcf = 1, 
+                                                  vcf = 1, 
+                                                  tow_swept_area = 0.01)
+        #print(names(x.out))
+        #print(class(x.out))
+        #print(str(x.out))
+        #print(x.out$out)
+        #print(x.out)
+        #print(x.out$Nal.hat.stratum[1:3,])
+        
+        #Take the important parts from x.out to generate an index over time.
+        Yeari=as.integer(substr(paste(cruise6[i]),1,4))
+        Tows=sum(x.out$out[,"m"]) #number of tows in the year in question
+        Ind.out<-rbind(Ind.out,c(Yeari,Tows,colSums(x.out$out[,c(4:7)]))) #grab the Num,Wt,varNum,VarWt
+        
+        IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum)))
+        
+      }
+      Ind.out=as.data.frame(Ind.out)
+      names(Ind.out)=c("Year","Tows","Num","Wt","VarNum","VarWt")
       #plot the indices for something to look at after a successful run
       if(!is.na(x.out[[2]][1,1])) { #Check to make sure x.out was loaded before attempting to plot
         output$myPlots <- renderPlot({
           
-          plot1 <- ggplot(as.data.frame(x.out$out), aes(x=stratum, y= EXPCATCHNUM)) +
-              geom_bar(stat="identity") +
-          
-
-            # plot1 <- ggplot(as.data.frame(x.out$Nal.hat.stratum), aes(x=rowSums(Nal.hat.stratum), y=strata.in)) +
-            # geom_line() +
-            theme_bw()
-          print(plot1)
+          #plot1 <- ggplot(as.data.frame(x.out$out), aes(x=stratum, y= EXPCATCHNUM)) +
+          #    geom_bar(stat="identity") +
+          # theme_bw()
+          if(nrow(Ind.out)>1){ #make sure there is more than one year to plot
+            #calculate a confidence interval to add to plot
+            ci=data.frame(Ind.out,"lci"=Ind.out$Wt-1.96*(sqrt(Ind.out$VarWt)/Ind.out$Tows)
+                          ,"uci"=Ind.out$Wt+1.96*(sqrt(Ind.out$VarWt)/Ind.out$Tows))
+            
+            print(ci)
+            
+            plot1<-ggplot(Ind.out, aes(x=Year, y=Wt)) +
+                 geom_line() +
+                 geom_ribbon(data=ci,aes(ymin=lci,ymax=uci),alpha=0.3) +
+                 theme_bw()
+  
+            print(plot1)
+          }
         })
       } else print("Invalid Stratum Selection: no observations of selected species in strata")
     } else print("Invalid Stratum Selection: no observations of selected species in strata")
