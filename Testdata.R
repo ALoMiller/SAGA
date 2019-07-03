@@ -41,8 +41,8 @@ fall.cruises <- unique(survey.cruises$CRUISE6[survey.cruises$SEASON == 'FALL'])
 spring.cruises <- unique(survey.cruises$CRUISE6[survey.cruises$SEASON == 'SPRING'])
 
 input=c()
-input$strata=c('1260','1270','1280','1370')
-input$years2=c(2009,2009)
+input$strata=c("1270", "1280", "1290", "1300", "1310", "1320", "1330")
+input$years2=c(2009,2016)
 input$species="ATLANTIC COD"
 input$season="FALL"
 cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season & 

@@ -159,6 +159,7 @@ server = function(input, output, session){
     print(seq(min(input$years2),max(input$years2)))
     print(cruise6)
     print(spp)
+    print(len.range)
     #print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season2 ])
     #print(survey.cruises$CRUISE6[survey.cruises$YEAR %in% seq(min(input$years2),max(input$years2))])
     
@@ -169,7 +170,7 @@ server = function(input, output, session){
                                                   survey = cruise6[i], 
                                                   oc = sole, 
                                                   strata = strata.in,
-                                                  lengths = 1:48, 
+                                                  lengths = len.range, 
                                                   do.length = TRUE, 
                                                   do.age = FALSE, 
                                                   gcf = 1, 
