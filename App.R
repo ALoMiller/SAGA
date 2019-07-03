@@ -114,7 +114,7 @@ ui <-
                           column(6,
                                 textInput("maxLength", 
                                           label = NULL, 
-                                          value = "100000", 
+                                          value = "100", 
                                           width = "100"))
                        ),
                      #Option to run current settings
@@ -154,7 +154,7 @@ server = function(input, output, session){
     #strata.in <- input$strata #the strata selected by the user
     strata.in <- input$mychooser$right
     len.range <- c(input$minLength:input$maxLength)
-    #Check user inputs
+    #Check user inputs and make a table of them for later 
     print(strata.in)
     print(seq(min(input$years2),max(input$years2)))
     print(cruise6)
@@ -162,9 +162,12 @@ server = function(input, output, session){
     print(len.range)
     #print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season2 ])
     #print(survey.cruises$CRUISE6[survey.cruises$YEAR %in% seq(min(input$years2),max(input$years2))])
+    userInputs=list("Species"=input$species2,"Strata"=strata.in,"Years"=seq(min(input$years2),max(input$years2))
+                    ,"Season"=input$season2,"Lengths"=len.range)
+    dput(userInputs,"user.Inputs") #other environments can see this after reading 
     
     if(length(cruise6)>0){
-      Ind.out=c();IAL.out=c();
+      Ind.out=c();IAL.out=c();VIAL.out=c();
       for(i in 1:length(cruise6)) {
         x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
                                                   survey = cruise6[i], 
@@ -187,13 +190,26 @@ server = function(input, output, session){
         #Take the important parts from x.out to generate an index over time.
         Yeari=as.integer(substr(paste(cruise6[i]),1,4))
         Tows=sum(x.out$out[,"m"]) #number of tows in the year in question
+        
+        #Generate products for later download and plotting:
         Ind.out<-rbind(Ind.out,c(Yeari,Tows,colSums(x.out$out[,c(4:7)][!is.na(x.out$out[,4]),]))) #grab the Num,Wt,varNum,VarWt
-        
-        IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum)))
-        
+        IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum/x.out$out[,"M"]))) #divide by the stratum area to 
+        #get unexpanded numbers at length
+        VIAL.out<-rbind(VIAL.out,c(Yeari,Tows,colSums(x.out$V.Nal.stratum/(x.out$out[,"M"]^2)))) #remove stratum area expansion
       }
       Ind.out=as.data.frame(Ind.out)
       names(Ind.out)=c("Year","Tows","Num","Wt","VarNum","VarWt")
+      dput(Ind.out,"Ind.out") #This should make this visible to other environments for later download
+      IAL.out=as.data.frame(IAL.out)
+      names(IAL.out)[1:2]=c("Year","nTows")
+      dput(IAL.out,"IAL.out") #This should make this visible to other environments for later download
+      VIAL.out=as.data.frame(VIAL.out)
+      names(VIAL.out)[1:2]=c("Year","nTows")
+      dput(VIAL.out,"VIAL.out") #This should make this visible to other environments for later download
+      
+      #print(IAL.out)
+      #print(VIAL.out)
+      
       #plot the indices for something to look at after a successful run
       if(!is.na(x.out[[2]][1,1])) { #Check to make sure x.out was loaded before attempting to plot
         output$myPlots <- renderPlot({
@@ -277,11 +293,32 @@ server = function(input, output, session){
                  radius = catch.data$bubbleSize[catch.data$EXPCATCHNUM>0]*5000)  
     
   })
+  #Get the saved output objects
+
   output$downloadData <- downloadHandler(
-    filename = function() { paste(input$spp, input$survey, min(input$minLength), max(input$maxLength), '.csv', sep='_') },
+    filename = function() { paste(input$species2, input$season2, min(input$minLength), max(input$maxLength), '.csv', sep='_') },
     content = function(file) {
-      lapply(x.out, function(x) write.table( data.frame(x), 'test.csv'  , append= T, sep=',' ))
-      #write.csv(get_data()$obs.data, file)
+      #write.csv(All.out,file=file,row.names = F)
+      if(file.exists("Ind.out")) Ind.out=dget("Ind.out")
+      if(file.exists("IAL.out")) IAL.out=dget("IAL.out")  
+      if(file.exists("VIAL.out")) VIAL.out=dget("VIAL.out")
+      if(all(c("VIAL.out","IAL.out","Ind.out")%in%objects())) {
+        All.out=list("Index"=(Ind.out),"NatLength"=(IAL.out), "VarNatLength"=(VIAL.out))
+        print(names(All.out))
+      }  
+      #Huge pain in the ass to get this to print the names of the list objects... 
+      write.list=function(x) {
+        write.table(x,file,append=T,sep=",",row.names = F,col.names = F)
+        write.table(data.frame(All.out[[x]]),file,row.names = F,append= T,sep=',' )
+      }
+      suppressWarnings(lapply(names(All.out),write.list))
+      
+      if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
+      write.list=function(x) {
+        write.table(x,file,append=T,sep=",",row.names = F,col.names = F)
+        write.table(data.frame(user.Inputs[[x]]),file,row.names = F,append= T,sep=',' ,col.names = F)
+      }
+      suppressWarnings(lapply(names(user.Inputs),write.list))
     }
   )
   # htmlwidgets::saveWidget(output$myMap, "temp.html", selfcontained = FALSE)
