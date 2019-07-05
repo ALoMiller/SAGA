@@ -105,7 +105,7 @@ ui <-
                                 max = 2019,
                                 value = c(2009,2018), sep = ""),
                      h5(strong("Enter range of lengths:")),             #length input (switch to dynamic options)
-                       fluidRow(
+                     fluidRow(
                           column(6,
                                 textInput("minLength", 
                                           label = NULL, 
@@ -117,6 +117,24 @@ ui <-
                                           value = "100", 
                                           width = "100"))
                        ),
+                    h5(strong("SHG values")),
+                    fluidRow(
+                      column(4,
+                             textInput("S", 
+                                       label = "Sta. <=", 
+                                       value = "1", 
+                                       width = "50px")),
+                      column(4,
+                            textInput("H", 
+                                label = "Haul <=" , 
+                                value = "3", 
+                                width = "50px")),
+                      column(4,
+                             textInput("G", 
+                                       label = "Gear <=", 
+                                       value = "6", 
+                                       width = "50px"))
+                    ),
                      #Option to run current settings
                      actionButton("runBtn","RUN"),
                      br(),
@@ -158,6 +176,9 @@ server = function(input, output, session){
     #strata.in <- input$strata #the strata selected by the user
     strata.in <- input$mychooser$right
     len.range <- c(input$minLength:input$maxLength)
+    S<-input$S
+    H<-input$H
+    G<-input$G
     #Check user inputs and make a table of them for later 
     print(strata.in)
     print(seq(min(input$years2),max(input$years2)))
@@ -183,7 +204,8 @@ server = function(input, output, session){
                                                   gcf = 1, 
                                                   dcf = 1, 
                                                   vcf = 1, 
-                                                  tow_swept_area = 0.01)
+                                                  tow_swept_area = 0.01,
+                                                  S=S,H=H,G=G)
         #print(names(x.out))
         #print(class(x.out))
         #print(str(x.out))
@@ -197,18 +219,21 @@ server = function(input, output, session){
         
         #Generate products for later download and plotting:
         Ind.out<-rbind(Ind.out,c(Yeari,Tows,colSums(x.out$out[,c(4:7)][!is.na(x.out$out[,4]),]))) #grab the Num,Wt,varNum,VarWt
-        IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum/x.out$out[,"M"]))) #divide by the stratum area to 
-        #get unexpanded numbers at length
-        VIAL.out<-rbind(VIAL.out,c(Yeari,Tows,colSums(x.out$V.Nal.stratum/(x.out$out[,"M"]^2)))) #remove stratum area expansion
+        IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum/x.out$out[,"M"])
+            ,"Total"=sum(colSums(x.out$Nal.hat.stratum/x.out$out[,"M"]))))  #Add a "Total" which is the index over the sizes of interest
+        
+        #divide by the stratum area to get unexpanded numbers at length
+        VIAL.out<-rbind(VIAL.out,c(Yeari,Tows,colSums(x.out$V.Nal.stratum/(x.out$out[,"M"]^2))
+              ,"Total"=sum(colSums(x.out$V.Nal.stratum/(x.out$out[,"M"]^2))))) #remove stratum area expansion
       }
       Ind.out=as.data.frame(Ind.out)
       names(Ind.out)=c("Year","Tows","Num","Wt","VarNum","VarWt")
       dput(Ind.out,"Ind.out") #This should make this visible to other environments for later download
       IAL.out=as.data.frame(IAL.out)
-      names(IAL.out)[1:2]=c("Year","nTows")
+      names(IAL.out)=c('Year','nTows',paste(len.range,"cm",sep=""),'Total')
       dput(IAL.out,"IAL.out") #This should make this visible to other environments for later download
       VIAL.out=as.data.frame(VIAL.out)
-      names(VIAL.out)[1:2]=c("Year","nTows")
+      names(VIAL.out)=c('Year','nTows',paste(len.range,"cm",sep=""),'Total')
       dput(VIAL.out,"VIAL.out") #This should make this visible to other environments for later download
    
       #print(IAL.out)
@@ -319,7 +344,7 @@ server = function(input, output, session){
     content = function(file) {
 
       All.out=getOutput()
-      
+    
       #Huge pain in the ass to get this to print the names of the list objects... 
       write.list=function(x) {
         write.table(x,file,append=T,sep=",",row.names = F,col.names = F)
