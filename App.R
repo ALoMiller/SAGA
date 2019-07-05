@@ -122,7 +122,11 @@ ui <-
                      br(),
                      br(),
                      #download data
-                     downloadButton('downloadData', 'Download Data')
+                     downloadButton('downloadData', 'Download .csv Data'),
+                     br(),
+                     br(),
+                     #download data2
+                     downloadButton('downloadDataR', 'Download RData')
                      
               ),
               column(7,
@@ -206,7 +210,7 @@ server = function(input, output, session){
       VIAL.out=as.data.frame(VIAL.out)
       names(VIAL.out)[1:2]=c("Year","nTows")
       dput(VIAL.out,"VIAL.out") #This should make this visible to other environments for later download
-      
+   
       #print(IAL.out)
       #print(VIAL.out)
       
@@ -295,17 +299,27 @@ server = function(input, output, session){
   })
   #Get the saved output objects
 
+  getOutput=reactive({
+    #This is a way to get the download handler to see these values... (from an observe event above)
+    if(file.exists("Ind.out")) Ind.out=dget("Ind.out")
+    if(file.exists("IAL.out")) IAL.out=dget("IAL.out")
+    if(file.exists("VIAL.out")) VIAL.out=dget("VIAL.out")
+    if(all(c("VIAL.out","IAL.out","Ind.out")%in%objects())) {
+      All.out=list("Index"=(Ind.out),"NatLength"=(IAL.out), "VarNatLength"=(VIAL.out))
+      #print(names(All.out))
+    }
+  })
+  
+  getInputs=reactive({
+    if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
+  })
+  
   output$downloadData <- downloadHandler(
     filename = function() { paste(input$species2, input$season2, min(input$minLength), max(input$maxLength), '.csv', sep='_') },
     content = function(file) {
-      #write.csv(All.out,file=file,row.names = F)
-      if(file.exists("Ind.out")) Ind.out=dget("Ind.out")
-      if(file.exists("IAL.out")) IAL.out=dget("IAL.out")  
-      if(file.exists("VIAL.out")) VIAL.out=dget("VIAL.out")
-      if(all(c("VIAL.out","IAL.out","Ind.out")%in%objects())) {
-        All.out=list("Index"=(Ind.out),"NatLength"=(IAL.out), "VarNatLength"=(VIAL.out))
-        print(names(All.out))
-      }  
+
+      All.out=getOutput()
+      
       #Huge pain in the ass to get this to print the names of the list objects... 
       write.list=function(x) {
         write.table(x,file,append=T,sep=",",row.names = F,col.names = F)
@@ -313,14 +327,31 @@ server = function(input, output, session){
       }
       suppressWarnings(lapply(names(All.out),write.list))
       
-      if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
+      # if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
+      user.Inputs=getInputs()
       write.list=function(x) {
         write.table(x,file,append=T,sep=",",row.names = F,col.names = F)
         write.table(data.frame(user.Inputs[[x]]),file,row.names = F,append= T,sep=',' ,col.names = F)
       }
       suppressWarnings(lapply(names(user.Inputs),write.list))
+     
     }
   )
+  
+  output$downloadDataR <- downloadHandler(
+    filename = function() { paste(input$species2, input$season2, min(input$minLength), max(input$maxLength), '.Rdata', sep='_') },
+    content = function(file) {
+      
+      All.out=getOutput()
+      user.Inputs=getInputs()
+      
+      SAGAr=list("Indices"=All.out,"UserInputs"=user.Inputs)
+      save(SAGAr,file=file)
+      
+    }
+  )
+  
+  
   # htmlwidgets::saveWidget(output$myMap, "temp.html", selfcontained = FALSE)
   #  webshot::webshot("temp.html", file = paste0(Sys.time(),"_map.png"))   
 }
