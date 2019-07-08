@@ -49,8 +49,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   #merge catch data and station location information
   catch.data <- merge(sta.view, cat.view, by = c('CRUISE6','STRATUM','TOW','STATION'),  all.x = T, all.y=F)
   #convert NA to 0 in catch number and weight
-  catch.data$EXPCATCHNUM=ifelse(is.na(catch.data$EXPCATCHNUM), 0.0,catch.data$EXPCATCHNUM)
-  catch.data$EXPCATCHWT=ifelse(is.na(catch.data$EXPCATCHWT),0.0,catch.data$EXPCATCHWT)
+  catch.data$EXPCATCHNUM[is.na(catch.data$EXPCATCHNUM)] <- 0
+  catch.data$EXPCATCHWT[is.na(catch.data$EXPCATCHWT)] <- 0
   
   #gear conversion - expand catch using a particular gear by the gear conversion factor.
   if(any(catch.data$SVGEAR %in% c(41,45))) { #This is an error trap for no gear of this type being in catch data
@@ -73,16 +73,23 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')] <- 
       vcf * catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')]
   }
-  #Bigelow conversion
-  if(do.Bigelow){
-    catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM*species$ 
-      vcf * catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')]
-    catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')] <- 
-      vcf * catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')]
-  }
+  #Bigelow conversion to Albatross series
+  if(do.Albatross){
+    if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
+        if(catch.data$CRUISE6 %in% fall.cruises){
+          catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM/species$FALLNUM[species$SVSPP==spp]
+          catch.data$EXPCATCHWT <- catch.data$EXPCATCHWT/species$FALLWT[species$SVSPP==spp]
+        }
+        if(catch.data$CRUISE6 %in% spring.cruises){
+          catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM/species$SPRNUM[species$SVSPP==spp]
+          catch.data$EXPCATCHWT <- catch.data$EXPCATCHWT/species$SPRWT[species$SVSPP==spp]
+        }
+    }
+  }  
   #Extract the number of stations in each selected stratum in the selected years
   m <- sapply(str.size$STRATUM, function(x) sum(sta.view$STRATUM == x))
-  M <- str.size$ExpArea #This is the proportional relationship between the area of the stratum and area of a tow...
+  M <- str.size$NTOWS #This is the proportional relationship between the area of the stratum and area of a tow...
+  #not sure what this is doing as towarea is set to .01
   
   #This is a sum of the catch over each stratum
   #print(catch.data[which(catch.data$STRATUM%in%str.size$STRATUM),c('EXPCATCHNUM','EXPCATCHWT')])
@@ -107,65 +114,60 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                    "where cruise6 = ", survey, " and STRATUM IN('", paste(strata, collapse = "','"), "')",
                    "and svspp = ", spp, " order by cruise6, stratum, tow, station, svspp, catchsex", sep = '')
     len.view <- sqlQuery(oc,q.len)
-    if(nrow(len.view)>0) {
-      len.data <- merge(catch.data, len.view, by = c('CRUISE6','STRATUM','TOW','STATION','CATCHSEX'),  all.x=T, all.y = F)
-      len.data$EXPNUMLEN=ifelse(is.na(len.data$EXPNUMLEN),0.0,len.data$EXPNUMLEN)
-      
-      #check to see if the entire length comp is is sample per user bounds
-      if(max(len.data$LENGTH, na.rm= T) > max(lengths)) warning(paste('max of lengths in length data = ', max(len.data$LENGTH, na.rm= T), ' whereas max of lengths given is ', max(lengths), sep = ''))
-      #nested sapply! This sums the numbers at length in each stratum over each of the user specified lengths
-      #result is a matrix with a row for each stratum and a col for each length
-      samp.tot.nal <- sapply(lengths, function(x) sapply(str.size$STRATUM
-                      , function(y) sum(len.data$EXPNUMLEN[len.data$STRATUM == y & len.data$LENGTH == x],na.rm = TRUE)))
-      rownames(samp.tot.nal) <- as.character(strata)
-      colnames(samp.tot.nal) <- as.character(lengths)
-      #print(head(len.data))
-      #print(samp.tot.nal)
-      #Apply the stratum weights to these
-      Nal.hat.stratum <- M * samp.tot.nal/m
-      #Remove NA
-      Nal.hat.stratum[is.na(Nal.hat.stratum)] <- 0 
-      #Now we need to get the variances - triple nested sapply!
-      #This will produce nonsense if there are strata selected with no observations!!
-      S.nal.stratum <- t(sapply(str.size$STRATUM, function(x){ #The function below is applied over each strata
-        x.dat <- len.data[which(len.data$STRATUM == x & !is.na(len.data$LENGTH)),] #len.data is the merged catch data (has location, etc) and the length data
-        if(dim(x.dat)[1]){ #if there are observations in len.data that match the stratum being tested this will be T 
-          nal.by.tow <- t(sapply(unique(x.dat$TOW), function(y){ #for each unique tow...
-            if(sum(x.dat$TOW == y)){ #I think this has to always be T, unless x.dat$TOW is a factor or something? 
-              #generate a sum of the number of fish at each length from the user specified lengths this will also generate 0s for 
-              #empty lengths
-              nal.tow <- sapply(lengths, function(z) sum(x.dat$EXPNUMLEN[which(x.dat$LENGTH == z & x.dat$TOW == y)], na.rm = TRUE))
-            }
-            else nal.tow <- rep(0,length(lengths)) #fill with zeroes
-            return(nal.tow)
-          }))
-          cov.nal <- diag(cov(nal.by.tow)) #since we have all the zeroes filled in we can generate a covariance, but we only want
-          #the main diagonal of this matrix (I think) #NEED TO CHECK THESE VARIANCE TERMS AGAINST A KNOWN SOLUTION!!!
-          #cov.nal[is.na(cov.nal)]= 0
-          #cov.nal=diag(cov.nal)
-          return(cov.nal)
-        }
-        #else return(matrix(0,length(lengths),length(lengths))) 
-        else return(matrix(NA,1,length(lengths))) #only returning the main diagonal so this should be 1 row
-      }))
-      #Replace NA in variance calc with 0 to match SAGA...
-      print(samp.tot.nal)
-      print(Nal.hat.stratum)
-      print(S.nal.stratum)
-      S.nal.stratum=ifelse(is.na(S.nal.stratum),0,S.nal.stratum)
-      Vhat.Nal.stratum <- M^2 * (1 - m/M) * S.nal.stratum/m #Apply the weighting factors to the variances
-      
-      
-      if(do.age){
-        #AGE
-        q.age <- paste("select  cruise6, stratum, tow, station, sex, length, age, indwt, maturity from svdbs.union_fscs_svbio ",
-                       "where cruise6 = ", survey, " and STRATUM IN('", paste(strata, collapse = "','"), "')",
-                       "and svspp = ", spp, " and age is not null order by cruise6, stratum, tow, station", sep = '')
-        age.view <- sqlQuery(oc,q.age)
-        age.data <- merge(len.data, age.view, by = c('CRUISE6','STRATUM','TOW','STATION','LENGTH'),  all.x = T, all.y=F)
-        #This is incomplete - all it does is collect the age data and merge it with the station data....
+    len.data <- merge(catch.data, len.view, by = c('CRUISE6','STRATUM','TOW','STATION','CATCHSEX'),  all.x=T, all.y = F)
+    len.data$EXPNUMLEN[is.na(len.data$EXPNUMLEN)] <- 0
+    #check to see if the entire length comp is is sample per user bounds
+    if(max(len.data$LENGTH, na.rm= T) > max(lengths)) warning(paste('max of lengths in length data = ', max(len.data$LENGTH, na.rm= T), ' whereas max of lengths given is ', max(lengths), sep = ''))
+    #nested sapply! This sums the numbers at length in each stratum over each of the user specified lengths
+    #result is a matrix with a row for each stratum and a col for each length
+    samp.tot.nal <- sapply(lengths, function(x) sapply(str.size$STRATUM
+                    , function(y) sum(len.data$EXPNUMLEN[len.data$STRATUM == y & len.data$LENGTH == x],na.rm = TRUE)))
+    rownames(samp.tot.nal) <- as.character(strata)
+    colnames(samp.tot.nal) <- as.character(lengths)
+    #print(head(len.data))
+    #print(samp.tot.nal)
+    #Apply the stratum weights to these
+    Nal.hat.stratum <- M * samp.tot.nal/m
+    #Remove NA
+    Nal.hat.stratum[is.na(Nal.hat.stratum)] <- 0 
+    #Now we need to get the variances - triple nested sapply!
+    #This will produce nonsense if there are strata selected with no observations!!
+    S.nal.stratum <- t(sapply(str.size$STRATUM, function(x){ #The function below is applied over each strata
+      x.dat <- len.data[which(len.data$STRATUM == x & !is.na(len.data$LENGTH)),] #len.data is the merged catch data (has location, etc) and the length data
+      if(dim(x.dat)[1]){ #if there are observations in len.data that match the stratum being tested this will be T 
+        nal.by.tow <- t(sapply(unique(x.dat$TOW), function(y){ #for each unique tow...
+          if(sum(x.dat$TOW == y)){ #I think this has to always be T, unless x.dat$TOW is a factor or something? 
+            #generate a sum of the number of fish at each length from the user specified lengths this will also generate 0s for 
+            #empty lengths
+            nal.tow <- sapply(lengths, function(z) sum(x.dat$EXPNUMLEN[which(x.dat$LENGTH == z & x.dat$TOW == y)], na.rm = TRUE))
+          }
+          else nal.tow <- rep(0,length(lengths)) #fill with zeroes
+          return(nal.tow)
+        }))
+        cov.nal <- diag(cov(nal.by.tow)) #since we have all the zeroes filled in we can generate a covariance, but we only want
+        #the main diagonal of this matrix (I think) #NEED TO CHECK THESE VARIANCE TERMS AGAINST A KNOWN SOLUTION!!!
+        #cov.nal[is.na(cov.nal)]= 0
+        #cov.nal=diag(cov.nal)
+        return(cov.nal)
       }
-    } else print("Can't make indices at length: no observations at selected length in selected strata!")  #check for length obs. 
+      #else return(matrix(0,length(lengths),length(lengths))) 
+      else return(matrix(NA,1,length(lengths))) #only returning the main diagonal so this should be 1 row
+    }))
+    print(Nal.hat.stratum)
+    print(S.nal.stratum)
+    
+    Vhat.Nal.stratum <- M^2 * (1 - m/M) * S.nal.stratum/m #Apply the weighting factors to the variances
+    
+    
+    if(do.age){
+      #AGE
+      q.age <- paste("select  cruise6, stratum, tow, station, sex, length, age, indwt, maturity from svdbs.union_fscs_svbio ",
+                     "where cruise6 = ", survey, " and STRATUM IN('", paste(strata, collapse = "','"), "')",
+                     "and svspp = ", spp, " and age is not null order by cruise6, stratum, tow, station", sep = '')
+      age.view <- sqlQuery(oc,q.age)
+      age.data <- merge(len.data, age.view, by = c('CRUISE6','STRATUM','TOW','STATION','LENGTH'),  all.x = T, all.y=F)
+      #This is incomplete - all it does is collect the age data and merge it with the station data....
+    }
   }
   
   #data.frame of stratified indices and variances 

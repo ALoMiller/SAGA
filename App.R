@@ -117,10 +117,8 @@ ui <-
                                           value = "100", 
                                           width = "100"))
                        ),
-<<<<<<< HEAD
                      checkboxInput("BigelowCalib", label = "Apply Bigelow Calibration", value = FALSE),
                 
-=======
                     h5(strong("SHG values")),
                     fluidRow(
                       column(4,
@@ -139,7 +137,6 @@ ui <-
                                        value = "6", 
                                        width = "50px"))
                     ),
->>>>>>> b78263a399e89ad3dd22c1eea50c9a5a1eeddf2e
                      #Option to run current settings
                      actionButton("runBtn","RUN"),
                      br(),
@@ -181,15 +178,12 @@ server = function(input, output, session){
     #strata.in <- input$strata #the strata selected by the user
     strata.in <- input$mychooser$right
     len.range <- c(input$minLength:input$maxLength)
-<<<<<<< HEAD
-    do.Bigelow <- input$BigelowCalib
+    do.Albatross <- input$BigelowCalib
     #Check user inputs
-=======
     S<-input$S
     H<-input$H
     G<-input$G
     #Check user inputs and make a table of them for later 
->>>>>>> b78263a399e89ad3dd22c1eea50c9a5a1eeddf2e
     print(strata.in)
     print(seq(min(input$years2),max(input$years2)))
     print(cruise6)
@@ -214,13 +208,9 @@ server = function(input, output, session){
                                                   gcf = 1, 
                                                   dcf = 1, 
                                                   vcf = 1, 
-<<<<<<< HEAD
-                                                  do.Bigelow = do.Bigelow
-                                                  tow_swept_area = 0.01)
-=======
+                                                  do.Albatross = do.Albatross,
                                                   tow_swept_area = 0.01,
                                                   S=S,H=H,G=G)
->>>>>>> b78263a399e89ad3dd22c1eea50c9a5a1eeddf2e
         #print(names(x.out))
         #print(class(x.out))
         #print(str(x.out))
