@@ -77,12 +77,12 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   if(do.Albatross){
     if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
         if(catch.data$CRUISE6 %in% fall.cruises){
-          catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM/species$FALLNUM[species$SVSPP==spp]
-          catch.data$EXPCATCHWT <- catch.data$EXPCATCHWT/species$FALLWT[species$SVSPP==spp]
+          catch.data$EXPCATCHNUM[catch.data$YEAR>2008] <- catch.data$EXPCATCHNUM[catch.data$YEAR>2008]/species$FALLNUM[species$SVSPP==spp]
+          catch.data$EXPCATCHWT[catch.data$YEAR>2008] <- catch.data$EXPCATCHWT[catch.data$YEAR>2008]/species$FALLWT[species$SVSPP==spp]
         }
         if(catch.data$CRUISE6 %in% spring.cruises){
-          catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM/species$SPRNUM[species$SVSPP==spp]
-          catch.data$EXPCATCHWT <- catch.data$EXPCATCHWT/species$SPRWT[species$SVSPP==spp]
+          catch.data$EXPCATCHNUM[catch.data$YEAR>2008] <- catch.data$EXPCATCHNUM[catch.data$YEAR>2008]/species$SPRNUM[species$SVSPP==spp]
+          catch.data$EXPCATCHWT[catch.data$YEAR>2008] <- catch.data$EXPCATCHWT[catch.data$YEAR>2008]/species$SPRWT[species$SVSPP==spp]
         }
     }
   }  
