@@ -72,6 +72,13 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')] <- 
       vcf * catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')]
   }
+  #Bigelow conversion
+  if(do.Bigelow){
+    catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM*species$ 
+      vcf * catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')]
+    catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')] <- 
+      vcf * catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')]
+  }
   #Extract the number of stations in each selected stratum in the selected years
   m <- sapply(str.size$STRATUM, function(x) sum(sta.view$STRATUM == x))
   M <- str.size$NTOWS #This is the proportional relationship between the area of the stratum and area of a tow...

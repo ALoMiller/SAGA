@@ -96,7 +96,7 @@ ui <-
                                  choices =  species$COMNAME, 
                                  selected = "BLACK SEA BASS"),
                      
-                     radioButtons("season2", "Choose season:",               #species radio buttons - switch map check boxes to these?
+                     radioButtons("season2", "Choose season:",               #species radio buttons - switch map check boxes to these?  Probably a good idea.
                                   choices = list("SPRING" = "SPRING", "FALL" = "FALL"), 
                                   selected = "SPRING"),
                      
@@ -117,6 +117,8 @@ ui <-
                                           value = "100000", 
                                           width = "100"))
                        ),
+                     checkboxInput("BigelowCalib", label = "Apply Bigelow Calibration", value = FALSE),
+                
                      #Option to run current settings
                      actionButton("runBtn","RUN"),
                      br(),
@@ -154,6 +156,7 @@ server = function(input, output, session){
     #strata.in <- input$strata #the strata selected by the user
     strata.in <- input$mychooser$right
     len.range <- c(input$minLength:input$maxLength)
+    do.Bigelow <- input$BigelowCalib
     #Check user inputs
     print(strata.in)
     print(seq(min(input$years2),max(input$years2)))
@@ -176,6 +179,7 @@ server = function(input, output, session){
                                                   gcf = 1, 
                                                   dcf = 1, 
                                                   vcf = 1, 
+                                                  do.Bigelow = do.Bigelow
                                                   tow_swept_area = 0.01)
         #print(names(x.out))
         #print(class(x.out))
