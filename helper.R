@@ -11,7 +11,11 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                                               gcf = 1,  #gear conversion factor
                                               dcf = 1,  #door conversion factor
                                               vcf = 1,  #vessel conversion factor
-                                              tow_swept_area = 0.01)
+                                              tow_swept_area = 0.01,
+                                              S=1,
+                                              H=3,
+                                              G=6
+                                              )
   {
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   # *********** sql queries ***************#
@@ -21,17 +25,20 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                            paste(strata, collapse = "','"), "')"," order by stratum", sep = '')
   str.size <- sqlQuery(oc,stratum.sizes.q)
   #print(str.size)
-  str.size$NTOWS <- str.size$STRATUM_AREA/tow_swept_area
+  str.size$ExpArea <- str.size$STRATUM_AREA/tow_swept_area
 
   #STATION location data 
   q.sta <- paste("select cruise6, stratum, tow, station, shg, svvessel, svgear, est_year, est_month, est_day, ",
                  "substr(est_time,1,2) || substr(est_time,4,2) as time, towdur, dopdistb, dopdistw, avgdepth, ",
+                 " statype, haul, gearcond, ",
                  "area, bottemp, beglat, beglon from svdbs.union_fscs_svsta ",
                   "where cruise6 = ", survey
                  #this would only get one year of survey data! option to fix below
                  #"where cruise6 in ('", paste(survey, collapse = "','"), "')"
-                 , " and STRATUM IN ('", paste(strata, collapse = "','"), "')",
-                 " and shg<= '136' order by cruise6, stratum, tow, station", sep = '')
+                 , " and STRATUM IN ('", paste(strata, collapse = "','"), "')"
+                 , " and STATYPE <= ",S," and HAUL <= ",H," and GEARCOND <= ", G #changing this to allow user specified SHG choices
+                 #" and shg<= '136' order by cruise6, stratum, tow, station", sep = '')
+                 , " order by cruise6, stratum, tow, station", sep = '')
   sta.view <- sqlQuery(oc,q.sta) 
   temp <- str.size[match(sta.view$STRATUM, str.size$STRATUM),]
   sta.view <- cbind(sta.view, temp[,-1])
@@ -74,8 +81,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   }
   #Extract the number of stations in each selected stratum in the selected years
   m <- sapply(str.size$STRATUM, function(x) sum(sta.view$STRATUM == x))
-  M <- str.size$NTOWS #This is the proportional relationship between the area of the stratum and area of a tow...
-  #not sure what this is doing as towarea is set to .01
+  M <- str.size$ExpArea #This is the proportional relationship between the area of the stratum and area of a tow...
   
   #This is a sum of the catch over each stratum
   #print(catch.data[which(catch.data$STRATUM%in%str.size$STRATUM),c('EXPCATCHNUM','EXPCATCHWT')])
@@ -141,10 +147,11 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         #else return(matrix(0,length(lengths),length(lengths))) 
         else return(matrix(NA,1,length(lengths))) #only returning the main diagonal so this should be 1 row
       }))
+      #Replace NA in variance calc with 0 to match SAGA...
       print(samp.tot.nal)
       print(Nal.hat.stratum)
       print(S.nal.stratum)
-      
+      S.nal.stratum=ifelse(is.na(S.nal.stratum),0,S.nal.stratum)
       Vhat.Nal.stratum <- M^2 * (1 - m/M) * S.nal.stratum/m #Apply the weighting factors to the variances
       
       

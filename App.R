@@ -218,13 +218,21 @@ server = function(input, output, session){
         Tows=sum(x.out$out[,"m"]) #number of tows in the year in question
         
         #Generate products for later download and plotting:
-        Ind.out<-rbind(Ind.out,c(Yeari,Tows,colSums(x.out$out[,c(4:7)][!is.na(x.out$out[,4]),]))) #grab the Num,Wt,varNum,VarWt
-        IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum/x.out$out[,"M"])
-            ,"Total"=sum(colSums(x.out$Nal.hat.stratum/x.out$out[,"M"]))))  #Add a "Total" which is the index over the sizes of interest
+        #grab the Num,Wt and generate stratified means 
+        SMns=colSums(x.out$out[,c(4:5)][!is.na(x.out$out[,4]),]*x.out$out[,"M"])/sum(x.out$out[,"M"])
+        #Now get the variances
+        Svars=colSums(x.out$out[,c(6:7)][!is.na(x.out$out[,4]),]*(x.out$out[,"M"]^2))/sum(x.out$out[,"M"])^2
+        Ind.out<-rbind(Ind.out,c(Yeari,Tows
+                    ,SMns,Svars)) 
+        #The indices at length require similar manipulation
+        #IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum/x.out$out[,"M"])
+        #    ,"Total"=sum(colSums(x.out$Nal.hat.stratum/x.out$out[,"M"]))))  #Add a "Total" which is the index over the sizes of interest
+        IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum/sum(x.out$out[,"M"]))
+                                 ,"Total"=sum(colSums(x.out$Nal.hat.stratum/sum(x.out$out[,"M"])))))  #Add a "Total" which is the index over the sizes of interest
         
         #divide by the stratum area to get unexpanded numbers at length
-        VIAL.out<-rbind(VIAL.out,c(Yeari,Tows,colSums(x.out$V.Nal.stratum/(x.out$out[,"M"]^2))
-              ,"Total"=sum(colSums(x.out$V.Nal.stratum/(x.out$out[,"M"]^2))))) #remove stratum area expansion
+        VIAL.out<-rbind(VIAL.out,c(Yeari,Tows,colSums(x.out$V.Nal.stratum/sum(x.out$out[,"M"])^2)
+              ,"Total"=sum(colSums(x.out$V.Nal.stratum/sum(x.out$out[,"M"])^2)))) #remove stratum area expansion
       }
       Ind.out=as.data.frame(Ind.out)
       names(Ind.out)=c("Year","Tows","Num","Wt","VarNum","VarWt")
