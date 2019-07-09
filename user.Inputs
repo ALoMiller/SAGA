@@ -1,4 +1,0 @@
-structure(list(Species = "BLACK SEA BASS", Strata = c("1010", 
-"1020", "1030", "1040", "1050", "1060", "1070", "1080"), Years = 2009:2018, 
-    Season = "SPRING", Lengths = 0:100), .Names = c("Species", 
-"Strata", "Years", "Season", "Lengths"))
