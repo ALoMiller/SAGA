@@ -243,8 +243,8 @@ server = function(input, output, session){
         
         #Warnings next - first make sure the warnings are consistent through time
         #Get the min and max observed size for all years
-        minL=min(minL,min(x.out$warnings$LengthRange))
-        maxL=max(maxL,max(x.out$warnings$LengthRange))
+        minL=min(minL,min(x.out$warnings$LengthRange),na.rm=T)
+        maxL=max(maxL,max(x.out$warnings$LengthRange),na.rm=T)
         #track if any user selected strata have no observed catch for this species in any of the selected years
         unUsedStrata=unUsedStrata[unUsedStrata%in%x.out$warnings$UnusedStrata]
         
@@ -291,13 +291,13 @@ server = function(input, output, session){
     
     #show arnings in notification form and remove existing old notifications
     if(minL<min(len.range)) {showNotification(paste0("Minimum observed size (", minL
-                    ,") is less than the selected minimum size (", min(len.range),")" ),id="minLid",duration=NULL)
+                    ,") is less than the selected minimum size (", min(len.range),")" ),id="minLid",duration=NULL,type="warning")
     } else removeNotification(id="minLid")
     if(maxL>max(len.range)) {showNotification(paste0("Maximum observed size (", maxL
-                    ,") is greater than the selected maximum size (", max(len.range),")" ),id="maxLid",duration=NULL)
+                    ,") is greater than the selected maximum size (", max(len.range),")" ),id="maxLid",duration=NULL,type="warning")
     } else removeNotification(id="maxLid")
     if(length(unUsedStrata)>0) {showNotification(paste0(" The following strata had no observed catch during the selected years: "
-                    ,unUsedStrata),duration=NULL,id="unusedid")
+                    ,unUsedStrata),duration=NULL,id="unusedid",type="warning")
     } else removeNotification(id="unusedid")
   }) #end observe "run" event
   
