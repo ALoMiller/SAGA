@@ -56,8 +56,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   #merge catch data and station location information
   catch.data <- merge(sta.view, cat.view, by = c('CRUISE6','STRATUM','TOW','STATION'),  all.x = T, all.y=F)
   #convert NA to 0 in catch number and weight
-  catch.data$EXPCATCHNUM[is.na(catch.data$EXPCATCHNUM)] <- 0
-  catch.data$EXPCATCHWT[is.na(catch.data$EXPCATCHWT)] <- 0
+  catch.data$EXPCATCHNUM=ifelse(is.na(catch.data$EXPCATCHNUM), 0,catch.data$EXPCATCHNUM)
+  catch.data$EXPCATCHWT=ifelse(is.na(catch.data$EXPCATCHWT),0,catch.data$EXPCATCHWT)
   
   #gear conversion - expand catch using a particular gear by the gear conversion factor.
   if(any(catch.data$SVGEAR %in% c(41,45))) { #This is an error trap for no gear of this type being in catch data
@@ -107,7 +107,6 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   #We only need the variances so drop the covariance cols
   S.n.w.stratum <- S.n.w.stratum[,c(1,4)] #NEED TO CHECK THESE AGAINST KNOWN VARIANCES!!!
   
-  
   #weighting factor for each stratum (area of stratum/area sampled) * effort
   N.W.hat.stratum <- M * samp.tot.n.w/m
   #variance weighting factor
@@ -121,9 +120,12 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                    "and svspp = ", spp, " order by cruise6, stratum, tow, station, svspp, catchsex", sep = '')
     len.view <- sqlQuery(oc,q.len)
     len.data <- merge(catch.data, len.view, by = c('CRUISE6','STRATUM','TOW','STATION','CATCHSEX'),  all.x=T, all.y = F)
-    len.data$EXPNUMLEN[is.na(len.data$EXPNUMLEN)] <- 0
+    len.data$EXPNUMLEN=ifelse(is.na(len.data$EXPNUMLEN),0,len.data$EXPNUMLEN)
     #check to see if the entire length comp is is sample per user bounds
-    if(max(len.data$LENGTH, na.rm= T) > max(lengths)) warning(paste('max of lengths in length data = ', max(len.data$LENGTH, na.rm= T), ' whereas max of lengths given is ', max(lengths), sep = ''))
+    #if(max(len.data$LENGTH, na.rm= T) > max(lengths)) warning(paste('max of lengths in length data = ', max(len.data$LENGTH, na.rm= T), ' whereas max of lengths given is ', max(lengths), sep = ''))
+    #Changing this so the warning message is reported through the app rather than the console
+    Lrange=range(len.data$LENGTH,na.rm = TRUE) #will report this back to the app and then determine if the user has missed some lengths
+    
     #nested sapply! This sums the numbers at length in each stratum over each of the user specified lengths
     #result is a matrix with a row for each stratum and a col for each length
     samp.tot.nal <- sapply(lengths, function(x) sapply(str.size$STRATUM
@@ -159,12 +161,11 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       #else return(matrix(0,length(lengths),length(lengths))) 
       else return(matrix(NA,1,length(lengths))) #only returning the main diagonal so this should be 1 row
     }))
-    print(Nal.hat.stratum)
-    print(S.nal.stratum)
+    #print(Nal.hat.stratum)
+    #print(S.nal.stratum)
     #Replace NA with zero top match SAGA
     S.nal.stratum=ifelse(is.na(S.nal.stratum),0,S.nal.stratum)
     Vhat.Nal.stratum <- M^2 * (1 - m/M) * S.nal.stratum/m #Apply the weighting factors to the variances
-    
     
     if(do.age){
       #AGE
@@ -187,5 +188,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     out$V.Nal.stratum = Vhat.Nal.stratum #variances by length
   }
   if(do.age) out$age.data <- age.data
+  #report warnings
+  out$warnings=list(LengthRange=Lrange,UnusedStrata=out$out[,"stratum"][out$out[,"EXPCATCHNUM"]==0.0])
+  
   return(out)
 }

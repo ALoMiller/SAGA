@@ -169,7 +169,9 @@ server = function(input, output, session){
   output$selection <- renderPrint(
     input$mychooser
   )
+  
   observeEvent(input$runBtn,{ #if run button is pushed:
+
     #grab cruise6 from the rows with matching season and year
     cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season2 & 
                                         survey.cruises$YEAR %in% seq(min(input$years2),max(input$years2))]
@@ -196,7 +198,7 @@ server = function(input, output, session){
     dput(userInputs,"user.Inputs") #other environments can see this after reading 
     
     if(length(cruise6)>0){
-      Ind.out=c();IAL.out=c();VIAL.out=c();
+      Ind.out=c();IAL.out=c();VIAL.out=c();maxL=max(len.range);minL=min(len.range);unUsedStrata=strata.in;
       for(i in 1:length(cruise6)) {
         x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
                                                   survey = cruise6[i], 
@@ -238,6 +240,14 @@ server = function(input, output, session){
         #divide by the stratum area to get unexpanded numbers at length
         VIAL.out<-rbind(VIAL.out,c(Yeari,Tows,colSums(x.out$V.Nal.stratum/sum(x.out$out[,"M"])^2)
               ,"Total"=sum(colSums(x.out$V.Nal.stratum/sum(x.out$out[,"M"])^2)))) #remove stratum area expansion
+        
+        #Warnings next - first make sure the warnings are consistent through time
+        #Get the min and max observed size for all years
+        minL=min(minL,min(x.out$warnings$LengthRange),na.rm=T)
+        maxL=max(maxL,max(x.out$warnings$LengthRange),na.rm=T)
+        #track if any user selected strata have no observed catch for this species in any of the selected years
+        unUsedStrata=unUsedStrata[unUsedStrata%in%x.out$warnings$UnusedStrata]
+        
       }
       Ind.out=as.data.frame(Ind.out)
       names(Ind.out)=c("Year","Tows","Num","Wt","VarNum","VarWt")
@@ -251,6 +261,8 @@ server = function(input, output, session){
    
       #print(IAL.out)
       #print(VIAL.out)
+      #print(unUsedStrata)
+      #print(c(minL,maxL))
       
       #plot the indices for something to look at after a successful run
       if(!is.na(x.out[[2]][1,1])) { #Check to make sure x.out was loaded before attempting to plot
@@ -276,6 +288,17 @@ server = function(input, output, session){
         })
       } else print("Invalid Stratum Selection: no observations of selected species in strata")
     } else print("Invalid Stratum Selection: no observations of selected species in strata")
+    
+    #show arnings in notification form and remove existing old notifications
+    if(minL<min(len.range)) {showNotification(paste0("Minimum observed size (", minL
+                    ,") is less than the selected minimum size (", min(len.range),")" ),id="minLid",duration=NULL,type="warning")
+    } else removeNotification(id="minLid")
+    if(maxL>max(len.range)) {showNotification(paste0("Maximum observed size (", maxL
+                    ,") is greater than the selected maximum size (", max(len.range),")" ),id="maxLid",duration=NULL,type="warning")
+    } else removeNotification(id="maxLid")
+    if(length(unUsedStrata)>0) {showNotification(paste0(" The following strata had no observed catch during the selected years: "
+                    ,unUsedStrata),duration=NULL,id="unusedid",type="warning")
+    } else removeNotification(id="unusedid")
   }) #end observe "run" event
   
   get_data <- reactive({ #This is the get data button
