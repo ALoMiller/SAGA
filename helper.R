@@ -56,8 +56,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   #merge catch data and station location information
   catch.data <- merge(sta.view, cat.view, by = c('CRUISE6','STRATUM','TOW','STATION'),  all.x = T, all.y=F)
   #convert NA to 0 in catch number and weight
-  catch.data$EXPCATCHNUM[is.na(catch.data$EXPCATCHNUM)] <- 0
-  catch.data$EXPCATCHWT[is.na(catch.data$EXPCATCHWT)] <- 0
+  catch.data$EXPCATCHNUM=ifelse(is.na(catch.data$EXPCATCHNUM), 0,catch.data$EXPCATCHNUM)
+  catch.data$EXPCATCHWT=ifelse(is.na(catch.data$EXPCATCHWT),0,catch.data$EXPCATCHWT)
   
   #gear conversion - expand catch using a particular gear by the gear conversion factor.
   if(any(catch.data$SVGEAR %in% c(41,45))) { #This is an error trap for no gear of this type being in catch data
@@ -120,7 +120,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                    "and svspp = ", spp, " order by cruise6, stratum, tow, station, svspp, catchsex", sep = '')
     len.view <- sqlQuery(oc,q.len)
     len.data <- merge(catch.data, len.view, by = c('CRUISE6','STRATUM','TOW','STATION','CATCHSEX'),  all.x=T, all.y = F)
-    len.data$EXPNUMLEN[is.na(len.data$EXPNUMLEN)] <- 0
+    len.data$EXPNUMLEN=ifelse(is.na(len.data$EXPNUMLEN),0,len.data$EXPNUMLEN)
     #check to see if the entire length comp is is sample per user bounds
     #if(max(len.data$LENGTH, na.rm= T) > max(lengths)) warning(paste('max of lengths in length data = ', max(len.data$LENGTH, na.rm= T), ' whereas max of lengths given is ', max(lengths), sep = ''))
     #Changing this so the warning message is reported through the app rather than the console
