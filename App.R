@@ -212,7 +212,11 @@ server = function(input, output, session){
                                                   vcf = 1, 
                                                   do.Albatross = do.Albatross,
                                                   tow_swept_area = 0.01,
-                                                  S=S,H=H,G=G)
+                                                  S=S,H=H,G=G,
+                                                  species=species,
+                                                  spring.cruises=spring.cruises,
+                                                  fall.cruises=fall.cruises
+                                                  )
         #print(names(x.out))
         #print(class(x.out))
         #print(str(x.out))
