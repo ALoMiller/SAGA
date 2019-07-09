@@ -2,8 +2,3 @@
 .Rhistory
 .RData
 .Ruserdata
-
-
-# generated files
-*.out
-user.Inputs

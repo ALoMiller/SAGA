@@ -1,0 +1,4 @@
+structure(list(Species = "WITCH FLOUNDER", Strata = c("1130", 
+"1140", "1150", "1160", "1170", "1180"), Years = 2009:2012, Season = "FALL", 
+    Lengths = 5:30), .Names = c("Species", "Strata", "Years", 
+"Season", "Lengths"))
