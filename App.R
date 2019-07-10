@@ -7,8 +7,8 @@ library(shinydashboard)
 library(webshot)
 library(htmlwidgets)
 library(ggplot2)
-library(sf)
-library(mapview)
+#library(sf)
+#library(mapview)
 
 #webshot::install_phantomjs()
 
@@ -69,7 +69,7 @@ ui <-
             tabName = "indices",                        #SAGA clone application user options 
               fluidRow(
                 column(6,
-                      chooserInput("mychooser", "Available frobs", "Selected frobs", #new custom widget strata selection using chooser.R
+                      chooserInput("mychooser", "Available strata", "Selected frobs", #new custom widget strata selection using chooser.R
                         strata.list[,1], c(), size = 20, multiple = TRUE
                       ),
                        #verbatimTextOutput("selection"),
@@ -245,7 +245,7 @@ server = function(input, output, session){
     if(min(len.range)<len.view$MINL | max(len.range)>len.view$MAXL) print("Adjusting user requested lengths to range of observed values")
     if(min(len.range)<len.view$MINL) len.range <- len.range[which(len.range>=len.view$MINL)]
     if(max(len.range)>len.view$MAXL) len.range <- len.range[which(len.range<=len.view$MAXL)]
-    if(input$minLength<len.view$MINL | input$maxLength>len.view$MAXL) print(paste("New range: ",len.range))
+    if(input$minLength<len.view$MINL | input$maxLength>len.view$MAXL) print("New range: ",len.range)
     
     #print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season ])
     #print(survey.cruises$CRUISE6[survey.cruises$YEAR %in% seq(min(input$years),max(input$years))])
