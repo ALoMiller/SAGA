@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+.gitignore
 
 
 # generated files
