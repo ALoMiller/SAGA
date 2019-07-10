@@ -70,7 +70,7 @@ ui <-
               fluidRow(
                 column(6,
                       chooserInput("mychooser", "Available strata", "Selected frobs", #new custom widget strata selection using chooser.R
-                        as.matrix(strata.list[,1],nrow=2), c(), size = 20, multiple = TRUE
+                        strata.list[,1], c(), size = 20, multiple = TRUE
                       ),
                        #verbatimTextOutput("selection"),
                        #selectInput("strata", "Select strata:",                #strata selection (switch to custom widget)
