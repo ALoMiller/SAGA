@@ -201,9 +201,7 @@ server = function(input, output, session){
   output$selection <- renderPrint(
     input$mychooser$right
   )
-<<<<<<< HEAD
-  observeEvent(input$runBtn,{ #if run button is pushed:
-=======
+
   # print list of input events
   output$text <- renderPrint({
     #reactiveValuesToList(input[which(substr(names(input),1,4)=="map_")])
@@ -215,8 +213,6 @@ server = function(input, output, session){
     #print(c("mycheck",length(input$mychooser$right)))
     req(input$mychooser$right)
     
-    
->>>>>>> a676b707fc6ec4ad8f2a6751044dbbdb57b324f8
     #grab cruise6 from the rows with matching season and year
     cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season & 
                                         survey.cruises$YEAR %in% seq(min(input$years),max(input$years))]
