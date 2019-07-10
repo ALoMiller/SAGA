@@ -28,7 +28,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   stratum.sizes.q <- paste("select stratum, stratum_area, strgrp_desc, stratum_name from svdbs.svmstrata where STRATUM IN ('", 
                            paste(strata, collapse = "','"), "')"," order by stratum", sep = '')
   str.size <- sqlQuery(oc,stratum.sizes.q)
-  #print(str.size)
+  print(str.size)
   str.size$ExpAreas <- str.size$STRATUM_AREA/tow_swept_area
 
   #STATION location data 

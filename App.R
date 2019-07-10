@@ -212,7 +212,6 @@ server = function(input, output, session){
     #print(c("mycheck",length(input$mychooser$right)))
     req(input$mychooser$right)
     
-    
     #grab cruise6 from the rows with matching season and year
     cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season & 
                                         survey.cruises$YEAR %in% seq(min(input$years),max(input$years))]
@@ -246,7 +245,7 @@ server = function(input, output, session){
     if(min(len.range)<len.view$MINL) len.range <- len.range[which(len.range>=len.view$MINL)]
     if(max(len.range)>len.view$MAXL) len.range <- len.range[which(len.range<=len.view$MAXL)]
     if(input$minLength<len.view$MINL | input$maxLength>len.view$MAXL) print(c("New range: ",len.range))
-    
+
     #print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season ])
     #print(survey.cruises$CRUISE6[survey.cruises$YEAR %in% seq(min(input$years),max(input$years))])
     userInputs=list("Species"=input$species,"Strata"=strata.in,"Years"=seq(min(input$years),max(input$years))
@@ -305,7 +304,6 @@ server = function(input, output, session){
         maxL=max(maxL,max(x.out$warnings$LengthRange),na.rm=T)
         #track if any user selected strata have no observed catch for this species in any of the selected years
         unUsedStrata=unUsedStrata[unUsedStrata%in%x.out$warnings$UnusedStrata]
-        
       }
       Ind.out=as.data.frame(Ind.out)
       names(Ind.out)=c("Year","Tows","Num","Wt","VarNum","VarWt")
@@ -316,7 +314,7 @@ server = function(input, output, session){
       VIAL.out=as.data.frame(VIAL.out)
       names(VIAL.out)=c('Year','nTows',paste(len.range,"cm",sep=""),'Total')
       dput(VIAL.out,"VIAL.out") #This should make this visible to other environments for later download
-   
+      
       #print(IAL.out)
       #print(VIAL.out)
       #print(unUsedStrata)
@@ -353,15 +351,15 @@ server = function(input, output, session){
     
     #show arnings in notification form and remove existing old notifications
     if(minL<min(len.range)) {showNotification(paste0("Minimum observed size (", minL
-                    ,") is less than the selected minimum size (", min(len.range),")" ),id="minLid",duration=NULL,type="warning")
+        ,") is less than the selected minimum size (", min(len.range),")" ),id="minLid",duration=NULL,type="warning")
     } else removeNotification(id="minLid")
     if(maxL>max(len.range)) {showNotification(paste0("Maximum observed size (", maxL
-                    ,") is greater than the selected maximum size (", max(len.range),")" ),id="maxLid",duration=NULL,type="warning")
+        ,") is greater than the selected maximum size (", max(len.range),")" ),id="maxLid",duration=NULL,type="warning")
     } else removeNotification(id="maxLid")
     if(length(unUsedStrata)>0) {showNotification(paste0(" The following strata had no observed catch during the selected years: "
-                    ,unUsedStrata),duration=NULL,id="unusedid",type="warning")
+        ,unUsedStrata),duration=NULL,id="unusedid",type="warning")
     } else removeNotification(id="unusedid")
-  }) #end observe "run" event
+    }) #end observe "run" event
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   #                                       MAP section 
