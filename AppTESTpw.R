@@ -21,11 +21,9 @@ if(file.exists("~/sas_data.sas")) { #some users will have this file - which cont
   nova <- odbcConnect(dsn="nova", uid=uid, pwd=pwd, believeNRows=FALSE) #
 } else {
   #need to get password and uid from user...
-  sole <- odbcConnect(dsn="sole", believeNRows=FALSE) #, uid="amiller", pwd="$$Vwda44862003"
-  nova <- odbcConnect(dsn="nova", believeNRows=FALSE) #, uid="amiller", pwd="$$Vwda44862003"  
+  sole <- odbcConnect(dsn="sole", believeNRows=FALSE) 
+  nova <- odbcConnect(dsn="nova", believeNRows=FALSE)   
 }
-#sole <- odbcConnect(dsn="sole", believeNRows=FALSE) #, uid="amiller", pwd="$$Vwda44862003"
-#nova <- odbcConnect(dsn="nova", believeNRows=FALSE) #, uid="amiller", pwd="$$Vwda44862003"  
 
 
 
