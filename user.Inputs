@@ -1,7 +1,7 @@
-structure(list(Species = "ATLANTIC COD", Strata = c("01010", 
+structure(list(Species = "BLACK SEA BASS", Strata = c("01010", 
 "01020", "01030", "01040", "01050", "01060", "01070", "01080", 
 "01090", "01100", "01110", "01120", "01130", "01140", "01150", 
 "01160", "01170", "01180", "01190", "01200", "01210", "01220", 
-"01230", "01240", "01250", "01260", "01270", "01280", "01290"
-), Years = 2009:2018, Season = "SPRING", Lengths = 2:150), .Names = c("Species", 
-"Strata", "Years", "Season", "Lengths"))
+"01230", "01240", "01250", "01260"), Years = 2009:2018, Season = "SPRING", 
+    Lengths = 2:64), .Names = c("Species", "Strata", "Years", 
+"Season", "Lengths"))

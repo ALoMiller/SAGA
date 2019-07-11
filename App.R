@@ -42,25 +42,25 @@ survey.cruises <- get.survey.data.fn()
 fall.cruises <- unique(survey.cruises$CRUISE6[survey.cruises$SEASON == 'FALL'])
 spring.cruises <- unique(survey.cruises$CRUISE6[survey.cruises$SEASON == 'SPRING'])
 
-############adds a MINL and MAXL lengths for each species from groundfish survey data 
-strata.list$AllStrata <- ifelse(nchar(strata.list$AllStrata)<5,paste0('0', strata.list$AllStrata),strata.list$AllStrata)
-for (i in species$SVSPP){
-  if(i==species$SVSPP[1]){
-    first.run <- sqlQuery(sole,paste0("select MIN(length) as minL, MAX(length) as maxL  
-      from svdbs.union_fscs_svlen  
-      where cruise6 in ('", paste(c(fall.cruises,spring.cruises), collapse = "','"),"') and stratum in ('", paste(strata.list$AllStrata, collapse = "','"),"') and svspp = ", i))
-  }
-  if(i!=species$SVSPP[1]){
-    temp2 <- sqlQuery(sole,paste0("select MIN(length) as minL, MAX(length) as maxL  
-      from svdbs.union_fscs_svlen  
-      where cruise6 in ('", paste(c(fall.cruises,spring.cruises), collapse = "','"),"') and stratum in ('", paste(strata.list$AllStrata, collapse = "','"),"') and svspp = ", i))
-    first.run <- rbind(first.run,temp2)
-  }
-  
-}
-species <- cbind(species,first.run)
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+############adds a MINL and MAXL lengths for each species from groundfish survey data  - takes a while so just added these to the speciesTable
+ strata.list$AllStrata <- ifelse(nchar(strata.list$AllStrata)<5,paste0('0', strata.list$AllStrata),strata.list$AllStrata)
+# for (i in species$SVSPP){
+#   if(i==species$SVSPP[1]){
+#     first.run <- sqlQuery(sole,paste0("select MIN(length) as minL, MAX(length) as maxL  
+#       from svdbs.union_fscs_svlen  
+#       where cruise6 in ('", paste(c(fall.cruises,spring.cruises), collapse = "','"),"') and stratum in ('", paste(strata.list$AllStrata, collapse = "','"),"') and svspp = ", i))
+#   }
+#   if(i!=species$SVSPP[1]){
+#     temp2 <- sqlQuery(sole,paste0("select MIN(length) as minL, MAX(length) as maxL  
+#       from svdbs.union_fscs_svlen  
+#       where cruise6 in ('", paste(c(fall.cruises,spring.cruises), collapse = "','"),"') and stratum in ('", paste(strata.list$AllStrata, collapse = "','"),"') and svspp = ", i))
+#     first.run <- rbind(first.run,temp2)
+#   }
+#   
+# }
+# species <- cbind(species,first.run)
+# 
+# #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ui <-
   dashboardPage(
     dashboardHeader(title = "NEFSC Survey Data Portal"), #"Portal" is not showing up in the sidebar
@@ -103,13 +103,9 @@ ui <-
                                   max = 2019,
                                   value = c(2009,2018), sep = ""),
                        uiOutput("ui.len"),
-                       
-                       selectInput("calib_type", "Bigelow calibration",
-                         c("none", "convert to Albatross", "convert to Bigelow"),
-                         selected = "none"),
-                       uiOutput("ui.calib"),
-                  
-                     h5(strong("SHG values")),
+                       uiOutput("ui.age"),
+                      
+                      h5(strong("SHG values")),
                       fluidRow(
                         column(3,
                                textInput("S", 
@@ -127,6 +123,16 @@ ui <-
                                          value = "6", 
                                          width = "50px"))
                       ),
+                  selectInput("calib_type", "Bigelow calibration",
+                    c("none", "convert to Albatross", "convert to Bigelow"),
+                    selected = "none"),
+                  uiOutput("ui.big.calib"),
+                  selectInput("gdv_calib", "Gear/Door/Vessel calibration",
+                    c("none", "specify values"),
+                    selected = "none"),
+                  uiOutput("ui.gdv.calib"),
+                  
+                  
                        #Option to run current settings
                        actionButton("runBtn","RUN"),
                        br(),
@@ -217,7 +223,49 @@ server = function(input, output, session){
     )
     
   })
-  output$ui.calib <- renderUI({  #generates dynamic UI for Bigelow calibration widget
+  output$ui.age <- renderUI({  #generates dynamic UI for length widget
+    if (is.null(input$species))
+      return()
+    
+    switch(input$species,
+      "ACADIAN REDFISH" = sliderInput("age1", "Select range of age(s)", min = species$MINA[1], max = species$MAXA[1], value = c(species$MINA[1],species$MAXA[1]), sep = ""),
+      "AMERICAN PLAICE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[2], max = species$MAXA[2], value = c(species$MINA[2],species$MAXA[2]), sep = ""),
+      "ATLANTIC COD" = sliderInput("age1", "Select range of age(s)", min = species$MINA[3], max = species$MAXA[3], value = c(species$MINA[3],species$MAXA[3]), sep = ""),
+      "ATLANTIC HERRING" = sliderInput("age1", "Select range of age(s)", min = species$MINA[4], max = species$MAXA[4], value = c(species$MINA[4],species$MAXA[4]), sep = ""),
+      "ATLANTIC MACKEREL" = sliderInput("age1", "Select range of age(s)", min = species$MINA[5], max = species$MAXA[5], value = c(species$MINA[5],species$MAXA[5]), sep = ""),
+      "ATLANTIC POLLOCK" = sliderInput("age1", "Select range of age(s)", min = species$MINA[6], max = species$MAXA[6], value = c(species$MINA[6],species$MAXA[6]), sep = ""),
+      "BARNDOOR SKATE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[7], max = species$MAXA[7], value = c(species$MINA[7],species$MAXA[7]), sep = ""),
+      "BLACK SEA BASS" = sliderInput("age1", "Select range of age(s)", min = species$MINA[8], max = species$MAXA[8], value = c(species$MINA[8],species$MAXA[8]), sep = ""),
+      "BLUEFISH" = sliderInput("age1", "Select range of age(s)", min = species$MINA[9], max = species$MAXA[9], value = c(species$MINA[9],species$MAXA[9]), sep = ""),
+      "BUTTERFISH" = sliderInput("age1", "Select range of age(s)", min = species$MINA[10], max = species$MAXA[2], value = c(species$MINA[10],species$MAXA[10]), sep = ""),
+      "CLEARNOSE SKATE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[11], max = species$MAXA[11], value = c(species$MINA[11],species$MAXA[11]), sep = ""),
+      "GOLDEN TILEFISH" = sliderInput("age1", "Select range of age(s)", min = species$MINA[12], max = species$MAXA[12], value = c(species$MINA[12],species$MAXA[12]), sep = ""),
+      "GOOSEFISH" = sliderInput("age1", "Select range of age(s)", min = species$MINA[13], max = species$MAXA[13], value = c(species$MINA[13],species$MAXA[13]), sep = ""),
+      "HADDOCK" = sliderInput("age1", "Select range of age(s)", min = species$MINA[14], max = species$MAXA[14], value = c(species$MINA[14],species$MAXA[14]), sep = ""),
+      "LITTLE SKATE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[15], max = species$MAXA[15], value = c(species$MINA[15],species$MAXA[15]), sep = ""),
+      "LONGFIN SQUID" = sliderInput("age1", "Select range of age(s)", min = species$MINA[16], max = species$MAXA[16], value = c(species$MINA[16],species$MAXA[16]), sep = ""),
+      "OFFSHORE HAKE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[17], max = species$MAXA[17], value = c(species$MINA[17],species$MAXA[17]), sep = ""),
+      "RED HAKE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[18], max = species$MAXA[18], value = c(species$MINA[18],species$MAXA[18]), sep = ""),
+      "SCUP" = sliderInput("age1", "Select range of age(s)", min = species$MINA[19], max = species$MAXA[19], value = c(species$MINA[19],species$MAXA[19]), sep = ""),
+      "SEA SCALLOP" = sliderInput("age1", "Select range of age(s)", min = species$MINA[20], max = species$MAXA[20], value = c(species$MINA[20],species$MAXA[20]), sep = ""),
+      "SHORTFIN SQUID" = sliderInput("age1", "Select range of age(s)", min = species$MINA[21], max = species$MAXA[21], value = c(species$MINA[21],species$MAXA[21]), sep = ""),
+      "SILVER HAKE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[22], max = species$MAXA[22], value = c(species$MINA[22],species$MAXA[22]), sep = ""),
+      "SMOOTH DOGFISH" = sliderInput("age1", "Select range of age(s)", min = species$MINA[23], max = species$MAXA[23], value = c(species$MINA[23],species$MAXA[23]), sep = ""),
+      "SMOOTH SKATE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[24], max = species$MAXA[24], value = c(species$MINA[24],species$MAXA[24]), sep = ""),
+      "STRIPED BASS" = sliderInput("age1", "Select range of age(s)", min = species$MINA[25], max = species$MAXA[25], value = c(species$MINA[25],species$MAXA[25]), sep = ""),
+      "SUMMER FLOUNDER" = sliderInput("age1", "Select range of age(s)", min = species$MINA[26], max = species$MAXA[26], value = c(species$MINA[26],species$MAXA[26]), sep = ""),
+      "THORNY SKATE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[27], max = species$MAXA[27], value = c(species$MINA[27],species$MAXA[27]), sep = ""),
+      "WHITE HAKE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[28], max = species$MAXA[28], value = c(species$MINA[28],species$MAXA[28]), sep = ""),
+      "WINDOWPANE FLOUNDER" = sliderInput("age1", "Select range of age(s)", min = species$MINA[29], max = species$MAXA[29], value = c(species$MINA[29],species$MAXA[29]), sep = ""),
+      "WINTER FLOUNDER" = sliderInput("age1", "Select range of age(s)", min = species$MINA[30], max = species$MAXA[30], value = c(species$MINA[30],species$MAXA[30]), sep = ""),
+      "WINTER SKATE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[31], max = species$MAXA[31], value = c(species$MINA[31],species$MAXA[31]), sep = ""),
+      "WITCH FLOUNDER" = sliderInput("age1", "Select range of age(s)", min = species$MINA[32], max = species$MAXA[32], value = c(species$MINA[32],species$MAXA[32]), sep = ""),
+      "YELLOWTAIL FLOUNDER" = sliderInput("age1", "Select range of age(s)", min = species$MINA[33], max = species$MAXA[33], value = c(species$MINA[33],species$MAXA[33]), sep = "")
+      
+    )
+    
+  })
+  output$ui.big.calib <- renderUI({  #generates dynamic UI for Bigelow calibration widget
     if (is.null(input$calib_type))
       return()
     
@@ -236,6 +284,38 @@ server = function(input, output, session){
       )
     )
   })
+  output$ui.gdv.calib <- renderUI({  #generates dynamic UI for Bigelow calibration widget
+    if (is.null(input$gdv_calib))
+      return()
+    
+    # Depending on input$calib_type, we'll generate a different
+    # UI component and send it to the client.
+    switch(input$gdv_calib,
+      "specify values" = fluidRow(
+        column(3,
+          textInput("gear", 
+            label = "Gear", 
+            value = "1", 
+            width = "50px")),
+        column(3,
+          textInput("door", 
+            label = "Door" , 
+            value = "1", 
+            width = "50px")),
+        column(3,
+          textInput("vessel", 
+            label = "Vessel", 
+            value = "1", 
+            width = "50px"))
+      ),
+      "convert to Bigelow" = selectInput("calib_meth", "Select calibration method:",
+        choices = c("constant" = "big.const.rho",
+          "length" = "big.len.rho"),
+        selected = "big.const.rho"
+      )
+    )
+  })
+  
   output$selection <- renderPrint(
     input$mychooser$right
   )
@@ -260,7 +340,20 @@ server = function(input, output, session){
     strata.in <- input$mychooser$right
     #strata.in <- input$mychooser
     len.range <- c(input$len1[1]:input$len1[2])
-    do.Albatross <- input$BigelowCalib
+    age.range <- c(input$age1[1]:input$age1[2])
+    do.Albatross <- input$calib_type=="convert to Albatross"
+    print(do.Albatross)
+    do.Bigelow <- input$calib_type=="convert to Bigelow"
+    if(input$gdv_calib=="specify values"){
+    gcf<- input$gear
+    dcf<- input$door
+    vcf<- input$vessel
+    } else {
+      gcf<- 1
+      dcf<- 1
+      vcf<- 1
+      
+    }
     #Check user inputs
     S<-input$S
     H<-input$H
@@ -299,19 +392,15 @@ server = function(input, output, session){
                                                   strata = strata.in,
                                                   lengths = len.range, 
                                                   do.length = TRUE, 
-                                                  do.age = FALSE, 
-                                                  gcf = 1, 
-                                                  dcf = 1, 
-                                                  vcf = 1, 
+                                                  do.age = FALSE,
+                                                  gcf = gcf, 
+                                                  dcf = dcf, 
+                                                  vcf = vcf, 
                                                   do.Albatross = do.Albatross,
+                                                  do.Bigelow = do.Bigelow,
                                                   tow_swept_area = 0.01,
+                                                  species=species, fall.cruises=fall.cruises,spring.cruises=spring.cruises,
                                                   S=S,H=H,G=G)
-        #print(names(x.out))
-        #print(class(x.out))
-        #print(str(x.out))
-        #print(x.out$out)
-        #print(x.out)
-        #print(x.out$Nal.hat.stratum[1:3,])
         
         #Take the important parts from x.out to generate an index over time.
         Yeari=as.integer(substr(paste(cruise6[i]),1,4))

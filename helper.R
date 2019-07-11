@@ -7,11 +7,12 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                                               strata = NULL,
                                               lengths = NULL, 
                                               do.length = TRUE, 
-                                              do.age = FALSE, 
+                                              do.age = FALSE,
                                               gcf = 1,  #gear conversion factor
                                               dcf = 1,  #door conversion factor
                                               vcf = 1,  #vessel conversion factor
                                               do.Albatross = FALSE,
+                                              do.Bigelow = FALSE,
                                               tow_swept_area = 0.01,
                                               S=1,
                                               H=3,
@@ -85,6 +86,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   }
   #Bigelow conversion to Albatross series
   if(do.Albatross){
+    print(species)
+    print(species$BIGELOWCALTYPE[species$SVSPP==spp])
     if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
         if(catch.data$CRUISE6[1] %in% fall.cruises){
           catch.data$EXPCATCHNUM[catch.data$EST_YEAR>2008] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR>2008]/species$FALLNUM[species$SVSPP==spp]
@@ -95,7 +98,20 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
           catch.data$EXPCATCHWT[catch.data$EST_YEAR>2008] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR>2008]/species$SPRWT[species$SVSPP==spp]
         }
     }
-  }  
+  } 
+  #Albatross conversion to Bigelow series
+  if(do.Bigelow){
+    if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
+      if(catch.data$CRUISE6[1] %in% fall.cruises){
+        catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009]*species$FALLNUM[species$SVSPP==spp]
+        catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009]*species$FALLWT[species$SVSPP==spp]
+      }
+      if(catch.data$CRUISE6[1] %in% spring.cruises){
+        catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009]*species$SPRNUM[species$SVSPP==spp]
+        catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009]*species$SPRWT[species$SVSPP==spp]
+      }
+    }
+  }
   #Extract the number of stations in each selected stratum in the selected years
   m <- sapply(str.size$STRATUM, function(x) sum(sta.view$STRATUM == x))
   M <- str.size$ExpArea #This is the proportional relationship between the area of the stratum and area of a tow...
