@@ -191,65 +191,73 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     if(do.age){
       #AGE
       q.age <- paste("select  cruise6, stratum, tow, station, sex, length, age, indwt, maturity from svdbs.union_fscs_svbio ",
-                     "where cruise6 = ", survey, " and STRATUM IN('", paste(strata, collapse = "','"), "')",
-                     "and svspp = ", spp, " and age is not null order by cruise6, stratum, tow, station", sep = '')
+                     " where cruise6 = ", survey, " and STRATUM IN ('", paste(strata, collapse = "','"), "')",
+                     " and svspp = ", spp, " and age is not null order by cruise6, stratum, tow, station", sep = '')
       age.view <- sqlQuery(oc,q.age)
       #age.data <- merge(len.data, age.view, by = c('CRUISE6','STRATUM','TOW','STATION','LENGTH'),  all.x = T, all.y=F)
       WtLenEx<- merge(len.data, age.view, by = c('CRUISE6','STRATUM','TOW','STATION','LENGTH'),  all.x = T, all.y=F)
       #Need to generate age-length keys here and then apply to the length composition
       
-      #Multinomial age length key generation
-      #From Jon.... 
-      #library(nnet) #required for multinom in get.mult.props function below
-      # function to compute proportions of age at length using multinomial approach
-      # based on code from Mike Bednarski and then stolen from ADIOS again
-      get.mult.props<-function(big.len=NULL,big.age=NULL,ref.age=NULL){
-        data<-WtLenEx[!is.na(WtLenEx$AGE),]
-        data$AGE <- relevel(as.factor(data$AGE), ref=ref.age) # relevel and make categorical
-        my.levels <- as.numeric(levels(data$AGE))
-        n.levels <- length(my.levels)
-        mn<-nnet::multinom(AGE ~ LENGTH, data=data,verbose=F)
-        Parameters <- coefficients(mn) # Parameters for multinomial key
-        newdata <- data.frame(cbind(LENGTH = big.len)) # length values
-        logits <- matrix(NA, nrow=length(big.len), ncol=length(my.levels))
-        logits[,1] <- rep(0,nrow(newdata)) # reference age
-        for (i in 1:(n.levels-1)){
-          logits[,(i+1)] <- Parameters[i] + Parameters[(n.levels-1+i)]*newdata$LENGTH
+      #Need to make sure we have data at this stage to proceed
+      if(nrow(WtLenEx)>0) {
+        #Multinomial age length key generation
+        #From Jon.... 
+        #library(nnet) #required for multinom in get.mult.props function below
+        # function to compute proportions of age at length using multinomial approach
+        # based on code from Mike Bednarski and then stolen from ADIOS again
+        get.mult.props<-function(big.len=NULL,big.age=NULL,ref.age=NULL){
+          data<-WtLenEx[!is.na(WtLenEx$AGE),]
+          data$AGE <- relevel(as.factor(data$AGE), ref=ref.age) # relevel and make categorical
+          my.levels <- as.numeric(levels(data$AGE))
+          n.levels <- length(my.levels)
+          mn<-nnet::multinom(AGE ~ LENGTH, data=data,verbose=F)
+          Parameters <- coefficients(mn) # Parameters for multinomial key
+          newdata <- data.frame(cbind(LENGTH = big.len)) # length values
+          logits <- matrix(NA, nrow=length(big.len), ncol=length(my.levels))
+          logits[,1] <- rep(0,nrow(newdata)) # reference age
+          for (i in 1:(n.levels-1)){
+            logits[,(i+1)] <- Parameters[i] + Parameters[(n.levels-1+i)]*newdata$LENGTH
+          }
+          # new code: to handle logit returns of large numbers
+          for (i in 1:n.levels){
+            logits[logits[,i] >= 500,i] <- 500
+          }
+          p.unscaled <- exp(logits)
+          p.normalized <- p.unscaled / rowSums(p.unscaled)
+          p <- matrix(0, nrow=length(big.len), ncol=(big.age+1)) # note starting at age 0
+          for (i in 1:n.levels){
+            p[,(my.levels[i]+1)] <- p.normalized[,i]
+          }
+          colnames(p)<-c(paste("pred.",0:big.age, sep=""))
+          return(p)
+        } #end get.mult.props function
+        
+        mult.props<- get.mult.props(big.len=(lengths),big.age=max(ages)
+              ,ref.age = 3)
+        
+        #Filling in missing information using the age length key generated above.
+        # FixedAgeKeyyrsem$PropAge[FixedAgeKeyyrsem['NUMAGE']==0]<-
+        #   sapply(X=1:nrow(FixedAgeKeyyrsem[FixedAgeKeyyrsem['NUMAGE']==0,]),FUN=function(x) {
+        #     yearsem<-paste0(FixedAgeKeyyrsem[x,"YEAR"],FixedAgeKeyyrsem[x,"SEM"])
+        #     probs<-mult.props[yearsem]
+        #     return(probs[[1]][FixedAgeKeyyrsem[x,"LENGTH.CM"],FixedAgeKeyyrsem[x,"AGE"]+1])
+        #   }
+        #   )
+        
+        #Now apply the age length key to the length distribution to get numbers at age  
+        Naa.hat.stratum=c()
+        Naa.hat.stratum=Nal.hat.stratum%*%mult.props #should give numbers at age for each stratum...
+        #remove the stupid factors!
+        Naa.hat.stratum=matrix(as.numeric(paste(Naa.hat.stratum)),nrow=nrow(Naa.hat.stratum))
+        #Naa.hat.stratum=rbind(Naa.hat.stratum,"Total"=colSums(Naa.hat.stratum)) #add a row for the total - this is done in App.R
+        Naa.hat.stratum=data.frame(strata,Naa.hat.stratum,stringsAsFactors = F) #make sure the strata names are preserved
+        names(Naa.hat.stratum)=c("Stratum",paste0("Age",0:max(ages))) #rename cols
+      } else { #No data condition
+          Naa.hat.stratum=c();
+          Naa.hat.stratum=data.frame(strata,matrix(NA,nrow=length(strata),ncol=(max(ages)+1)),stringsAsFactors = F)
+          names(Naa.hat.stratum)=c("Stratum",paste0("Age",0:max(ages))) #rename cols
         }
-        # new code: to handle logit returns of large numbers
-        for (i in 1:n.levels){
-          logits[logits[,i] >= 500,i] <- 500
-        }
-        p.unscaled <- exp(logits)
-        p.normalized <- p.unscaled / rowSums(p.unscaled)
-        p <- matrix(0, nrow=length(big.len), ncol=(big.age+1)) # note starting at age 0
-        for (i in 1:n.levels){
-          p[,(my.levels[i]+1)] <- p.normalized[,i]
-        }
-        colnames(p)<-c(paste("pred.",0:big.age, sep=""))
-        return(p)
-      } #end get.mult.props function
       
-      mult.props<- get.mult.props(big.len=(lengths),big.age=max(ages)
-            ,ref.age = 3)
-      
-      #Filling in missing information using the age length key generated above.
-      # FixedAgeKeyyrsem$PropAge[FixedAgeKeyyrsem['NUMAGE']==0]<-
-      #   sapply(X=1:nrow(FixedAgeKeyyrsem[FixedAgeKeyyrsem['NUMAGE']==0,]),FUN=function(x) {
-      #     yearsem<-paste0(FixedAgeKeyyrsem[x,"YEAR"],FixedAgeKeyyrsem[x,"SEM"])
-      #     probs<-mult.props[yearsem]
-      #     return(probs[[1]][FixedAgeKeyyrsem[x,"LENGTH.CM"],FixedAgeKeyyrsem[x,"AGE"]+1])
-      #   }
-      #   )
-      
-      #Now apply the age length key to the length distribution to get numbers at age  
-      Naa.hat.stratum=c()
-      Naa.hat.stratum=Nal.hat.stratum%*%mult.props #should give numbers at age for each stratum...
-      #remove the stupid factors!
-      Naa.hat.stratum=matrix(as.numeric(paste(Naa.hat.stratum)),nrow=nrow(Naa.hat.stratum))
-      #Naa.hat.stratum=rbind(Naa.hat.stratum,"Total"=colSums(Naa.hat.stratum)) #add a row for the total - this is done in App.R
-      Naa.hat.stratum=data.frame(strata,Naa.hat.stratum,stringsAsFactors = F) #make sure the strata names are preserved
-      names(Naa.hat.stratum)=c("Stratum",paste0("Age",0:max(WtLenEx[,"AGE"],na.rm=T))) #rename cols
     }
   }
   
