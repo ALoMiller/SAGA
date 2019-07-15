@@ -47,19 +47,36 @@ spring.cruises <- unique(survey.cruises$CRUISE6[survey.cruises$SEASON == 'SPRING
 strata.list$AllStrata <- ifelse(nchar(strata.list$AllStrata)<5,paste0('0', strata.list$AllStrata),strata.list$AllStrata)
 # for (i in species$SVSPP){
 #   if(i==species$SVSPP[1]){
-#     first.run <- sqlQuery(sole,paste0("select MIN(length) as minL, MAX(length) as maxL  
-#       from svdbs.union_fscs_svlen  
+#     first.run <- sqlQuery(sole,paste0("select MIN(length) as minL, MAX(length) as maxL
+#       from svdbs.union_fscs_svlen
 #       where cruise6 in ('", paste(c(fall.cruises,spring.cruises), collapse = "','"),"') and stratum in ('", paste(strata.list$AllStrata, collapse = "','"),"') and svspp = ", i))
 #   }
 #   if(i!=species$SVSPP[1]){
-#     temp2 <- sqlQuery(sole,paste0("select MIN(length) as minL, MAX(length) as maxL  
-#       from svdbs.union_fscs_svlen  
+#     temp2 <- sqlQuery(sole,paste0("select MIN(length) as minL, MAX(length) as maxL
+#       from svdbs.union_fscs_svlen
+#       where cruise6 in ('", paste(c(fall.cruises,spring.cruises), collapse = "','"),"') and stratum in ('", paste(strata.list$AllStrata, collapse = "','"),"') and svspp = ", i))
+#     first.run <- rbind(first.run,temp2)
+#   }
+# 
+# }
+# species <- cbind(species,first.run)
+# for (i in species$SVSPP){
+#   if(i==species$SVSPP[1]){
+#     first.run <- sqlQuery(sole,paste0("select MIN(age) as minA, MAX(age) as maxA
+#       from svdbs.union_fscs_svbio
+#       where cruise6 in ('", paste(c(fall.cruises,spring.cruises), collapse = "','"),"') and stratum in ('", paste(strata.list$AllStrata, collapse = "','"),"') and svspp = ", i))
+#   }
+#   if(i!=species$SVSPP[1]){
+#     temp2 <- sqlQuery(sole,paste0("select MIN(age) as minA, MAX(age) as maxA
+#       from svdbs.union_fscs_svbio
 #       where cruise6 in ('", paste(c(fall.cruises,spring.cruises), collapse = "','"),"') and stratum in ('", paste(strata.list$AllStrata, collapse = "','"),"') and svspp = ", i))
 #     first.run <- rbind(first.run,temp2)
 #   }
 #   
 # }
 # species <- cbind(species,first.run)
+# tab.out=species[,c(1,2,3,20,21)]
+# write.csv(tab.out,file="agesOut.csv")
 # 
 # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ui <-
