@@ -85,25 +85,31 @@ ui <-
             tabName = "indices",                        #SAGA clone application user options 
               fluidRow(
                 column(2,
+                  h5(strong("Select strata:")),
                       chooserInput("mychooser", "Available strata", "Selected frobs", #new custom widget strata selection using chooser.R
-                        strata.list[,1], c(), size = 40, multiple = TRUE
+                        strata.list[,1], c(), size = 38, multiple = TRUE
                       )),
-                column(3,
+                column(4,
                        
                        selectInput("species", "Select species:",              #Species drop menu
                                    choices =  species$COMNAME, 
                                    selected = "BLACK SEA BASS"),
                        
-                       radioButtons("season", "Choose season:",               #species radio buttons - switch map check boxes to these?  Probably a good idea.
+                  fluidRow(
+                    column(3,
+                      radioButtons("season", "Choose season:",               #species radio buttons - switch map check boxes to these?  Probably a good idea.
                                     choices = list("SPRING" = "SPRING", "FALL" = "FALL"), 
-                                    selected = "SPRING"),
-                       
-                       sliderInput("years", "Select range of year(s)",            #Years slider
+                                    selected = "SPRING")),
+                    column(9,   
+                       sliderInput("years", "Select range of year(s):",            #Years slider
                                   min = 1950, 
                                   max = 2019,
-                                  value = c(2009,2018), sep = ""),
-                       uiOutput("ui.len"),
-                       uiOutput("ui.age"),
+                                  value = c(2009,2018), sep = ""))),
+                  fluidRow(
+                    column(6,
+                       uiOutput("ui.len")),
+                    column(6,
+                       uiOutput("ui.age"))),
                       
                       h5(strong("SHG values")),
                       fluidRow(
@@ -123,28 +129,31 @@ ui <-
                                          value = "6", 
                                          width = "50px"))
                       ),
-                  selectInput("calib_type", "Bigelow calibration",
+                  selectInput("calib_type", "Bigelow calibration:",
                     c("none", "convert to Albatross", "convert to Bigelow"),
                     selected = "none"),
                   uiOutput("ui.big.calib"),
-                  selectInput("gdv_calib", "Gear/Door/Vessel calibration",
+                  selectInput("gdv_calib", "Gear/Door/Vessel calibration:",
                     c("none", "specify values"),
                     selected = "none"),
                   uiOutput("ui.gdv.calib"),
                   
                   
                        #Option to run current settings
-                       actionButton("runBtn","RUN"),
+                       actionButton("runBtn","RUN", icon("cogs"), style="color: black; background-color: orange; border-color: grey"),
                        br(),
                        br(),
                        #download data
-                       downloadButton('downloadData', 'Download .csv Data'),
-                       br(),
-                       br(),
+                  fluidRow(
+                    column(5,
+                       downloadButton('downloadData', 'Download .csv Data')),
+                       #br(),
+                       #br(),
                        #download data2
-                       downloadButton('downloadDataR', 'Download RData')
-                ),
-                column(7,
+                    column(4,
+                       downloadButton('downloadDataR', 'Download RData'))
+                )),
+                column(6,
                   plotOutput("myPlots")
                   )
               
@@ -186,39 +195,39 @@ server = function(input, output, session){
       return()
     
     switch(input$species,
-      "ACADIAN REDFISH" = sliderInput("len1", "Select range of length(s)", min = species$MINL[1], max = species$MAXL[1], value = c(species$MINL[1],species$MAXL[1]), sep = ""),
-      "AMERICAN PLAICE" = sliderInput("len1", "Select range of length(s)", min = species$MINL[2], max = species$MAXL[2], value = c(species$MINL[2],species$MAXL[2]), sep = ""),
-      "ATLANTIC COD" = sliderInput("len1", "Select range of length(s)", min = species$MINL[3], max = species$MAXL[3], value = c(species$MINL[3],species$MAXL[3]), sep = ""),
-      "ATLANTIC HERRING" = sliderInput("len1", "Select range of length(s)", min = species$MINL[4], max = species$MAXL[4], value = c(species$MINL[4],species$MAXL[4]), sep = ""),
-      "ATLANTIC MACKEREL" = sliderInput("len1", "Select range of length(s)", min = species$MINL[5], max = species$MAXL[5], value = c(species$MINL[5],species$MAXL[5]), sep = ""),
-      "ATLANTIC POLLOCK" = sliderInput("len1", "Select range of length(s)", min = species$MINL[6], max = species$MAXL[6], value = c(species$MINL[6],species$MAXL[6]), sep = ""),
-      "BARNDOOR SKATE" = sliderInput("len1", "Select range of length(s)", min = species$MINL[7], max = species$MAXL[7], value = c(species$MINL[7],species$MAXL[7]), sep = ""),
-      "BLACK SEA BASS" = sliderInput("len1", "Select range of length(s)", min = species$MINL[8], max = species$MAXL[8], value = c(species$MINL[8],species$MAXL[8]), sep = ""),
-      "BLUEFISH" = sliderInput("len1", "Select range of length(s)", min = species$MINL[9], max = species$MAXL[9], value = c(species$MINL[9],species$MAXL[9]), sep = ""),
-      "BUTTERFISH" = sliderInput("len1", "Select range of length(s)", min = species$MINL[10], max = species$MAXL[2], value = c(species$MINL[10],species$MAXL[10]), sep = ""),
-      "CLEARNOSE SKATE" = sliderInput("len1", "Select range of length(s)", min = species$MINL[11], max = species$MAXL[11], value = c(species$MINL[11],species$MAXL[11]), sep = ""),
-      "GOLDEN TILEFISH" = sliderInput("len1", "Select range of length(s)", min = species$MINL[12], max = species$MAXL[12], value = c(species$MINL[12],species$MAXL[12]), sep = ""),
-      "GOOSEFISH" = sliderInput("len1", "Select range of length(s)", min = species$MINL[13], max = species$MAXL[13], value = c(species$MINL[13],species$MAXL[13]), sep = ""),
-      "HADDOCK" = sliderInput("len1", "Select range of length(s)", min = species$MINL[14], max = species$MAXL[14], value = c(species$MINL[14],species$MAXL[14]), sep = ""),
-      "LITTLE SKATE" = sliderInput("len1", "Select range of length(s)", min = species$MINL[15], max = species$MAXL[15], value = c(species$MINL[15],species$MAXL[15]), sep = ""),
-      "LONGFIN SQUID" = sliderInput("len1", "Select range of length(s)", min = species$MINL[16], max = species$MAXL[16], value = c(species$MINL[16],species$MAXL[16]), sep = ""),
-      "OFFSHORE HAKE" = sliderInput("len1", "Select range of length(s)", min = species$MINL[17], max = species$MAXL[17], value = c(species$MINL[17],species$MAXL[17]), sep = ""),
-      "RED HAKE" = sliderInput("len1", "Select range of length(s)", min = species$MINL[18], max = species$MAXL[18], value = c(species$MINL[18],species$MAXL[18]), sep = ""),
-      "SCUP" = sliderInput("len1", "Select range of length(s)", min = species$MINL[19], max = species$MAXL[19], value = c(species$MINL[19],species$MAXL[19]), sep = ""),
-      "SEA SCALLOP" = sliderInput("len1", "Select range of length(s)", min = species$MINL[20], max = species$MAXL[20], value = c(species$MINL[20],species$MAXL[20]), sep = ""),
-      "SHORTFIN SQUID" = sliderInput("len1", "Select range of length(s)", min = species$MINL[21], max = species$MAXL[21], value = c(species$MINL[21],species$MAXL[21]), sep = ""),
-      "SILVER HAKE" = sliderInput("len1", "Select range of length(s)", min = species$MINL[22], max = species$MAXL[22], value = c(species$MINL[22],species$MAXL[22]), sep = ""),
-      "SMOOTH DOGFISH" = sliderInput("len1", "Select range of length(s)", min = species$MINL[23], max = species$MAXL[23], value = c(species$MINL[23],species$MAXL[23]), sep = ""),
-      "SMOOTH SKATE" = sliderInput("len1", "Select range of length(s)", min = species$MINL[24], max = species$MAXL[24], value = c(species$MINL[24],species$MAXL[24]), sep = ""),
-      "STRIPED BASS" = sliderInput("len1", "Select range of length(s)", min = species$MINL[25], max = species$MAXL[25], value = c(species$MINL[25],species$MAXL[25]), sep = ""),
-      "SUMMER FLOUNDER" = sliderInput("len1", "Select range of length(s)", min = species$MINL[26], max = species$MAXL[26], value = c(species$MINL[26],species$MAXL[26]), sep = ""),
-      "THORNY SKATE" = sliderInput("len1", "Select range of length(s)", min = species$MINL[27], max = species$MAXL[27], value = c(species$MINL[27],species$MAXL[27]), sep = ""),
-      "WHITE HAKE" = sliderInput("len1", "Select range of length(s)", min = species$MINL[28], max = species$MAXL[28], value = c(species$MINL[28],species$MAXL[28]), sep = ""),
-      "WINDOWPANE FLOUNDER" = sliderInput("len1", "Select range of length(s)", min = species$MINL[29], max = species$MAXL[29], value = c(species$MINL[29],species$MAXL[29]), sep = ""),
-      "WINTER FLOUNDER" = sliderInput("len1", "Select range of length(s)", min = species$MINL[30], max = species$MAXL[30], value = c(species$MINL[30],species$MAXL[30]), sep = ""),
-      "WINTER SKATE" = sliderInput("len1", "Select range of length(s)", min = species$MINL[31], max = species$MAXL[31], value = c(species$MINL[31],species$MAXL[31]), sep = ""),
-      "WITCH FLOUNDER" = sliderInput("len1", "Select range of length(s)", min = species$MINL[32], max = species$MAXL[32], value = c(species$MINL[32],species$MAXL[32]), sep = ""),
-      "YELLOWTAIL FLOUNDER" = sliderInput("len1", "Select range of length(s)", min = species$MINL[33], max = species$MAXL[33], value = c(species$MINL[33],species$MAXL[33]), sep = "")
+      "ACADIAN REDFISH" = sliderInput("len1", "Select range of length(s):", min = species$MINL[1], max = species$MAXL[1], value = c(species$MINL[1],species$MAXL[1]), sep = ""),
+      "AMERICAN PLAICE" = sliderInput("len1", "Select range of length(s):", min = species$MINL[2], max = species$MAXL[2], value = c(species$MINL[2],species$MAXL[2]), sep = ""),
+      "ATLANTIC COD" = sliderInput("len1", "Select range of length(s):", min = species$MINL[3], max = species$MAXL[3], value = c(species$MINL[3],species$MAXL[3]), sep = ""),
+      "ATLANTIC HERRING" = sliderInput("len1", "Select range of length(s):", min = species$MINL[4], max = species$MAXL[4], value = c(species$MINL[4],species$MAXL[4]), sep = ""),
+      "ATLANTIC MACKEREL" = sliderInput("len1", "Select range of length(s):", min = species$MINL[5], max = species$MAXL[5], value = c(species$MINL[5],species$MAXL[5]), sep = ""),
+      "ATLANTIC POLLOCK" = sliderInput("len1", "Select range of length(s):", min = species$MINL[6], max = species$MAXL[6], value = c(species$MINL[6],species$MAXL[6]), sep = ""),
+      "BARNDOOR SKATE" = sliderInput("len1", "Select range of length(s):", min = species$MINL[7], max = species$MAXL[7], value = c(species$MINL[7],species$MAXL[7]), sep = ""),
+      "BLACK SEA BASS" = sliderInput("len1", "Select range of length(s):", min = species$MINL[8], max = species$MAXL[8], value = c(species$MINL[8],species$MAXL[8]), sep = ""),
+      "BLUEFISH" = sliderInput("len1", "Select range of length(s):", min = species$MINL[9], max = species$MAXL[9], value = c(species$MINL[9],species$MAXL[9]), sep = ""),
+      "BUTTERFISH" = sliderInput("len1", "Select range of length(s):", min = species$MINL[10], max = species$MAXL[2], value = c(species$MINL[10],species$MAXL[10]), sep = ""),
+      "CLEARNOSE SKATE" = sliderInput("len1", "Select range of length(s):", min = species$MINL[11], max = species$MAXL[11], value = c(species$MINL[11],species$MAXL[11]), sep = ""),
+      "GOLDEN TILEFISH" = sliderInput("len1", "Select range of length(s):", min = species$MINL[12], max = species$MAXL[12], value = c(species$MINL[12],species$MAXL[12]), sep = ""),
+      "GOOSEFISH" = sliderInput("len1", "Select range of length(s):", min = species$MINL[13], max = species$MAXL[13], value = c(species$MINL[13],species$MAXL[13]), sep = ""),
+      "HADDOCK" = sliderInput("len1", "Select range of length(s):", min = species$MINL[14], max = species$MAXL[14], value = c(species$MINL[14],species$MAXL[14]), sep = ""),
+      "LITTLE SKATE" = sliderInput("len1", "Select range of length(s):", min = species$MINL[15], max = species$MAXL[15], value = c(species$MINL[15],species$MAXL[15]), sep = ""),
+      "LONGFIN SQUID" = sliderInput("len1", "Select range of length(s):", min = species$MINL[16], max = species$MAXL[16], value = c(species$MINL[16],species$MAXL[16]), sep = ""),
+      "OFFSHORE HAKE" = sliderInput("len1", "Select range of length(s):", min = species$MINL[17], max = species$MAXL[17], value = c(species$MINL[17],species$MAXL[17]), sep = ""),
+      "RED HAKE" = sliderInput("len1", "Select range of length(s):", min = species$MINL[18], max = species$MAXL[18], value = c(species$MINL[18],species$MAXL[18]), sep = ""),
+      "SCUP" = sliderInput("len1", "Select range of length(s):", min = species$MINL[19], max = species$MAXL[19], value = c(species$MINL[19],species$MAXL[19]), sep = ""),
+      "SEA SCALLOP" = sliderInput("len1", "Select range of length(s):", min = species$MINL[20], max = species$MAXL[20], value = c(species$MINL[20],species$MAXL[20]), sep = ""),
+      "SHORTFIN SQUID" = sliderInput("len1", "Select range of length(s):", min = species$MINL[21], max = species$MAXL[21], value = c(species$MINL[21],species$MAXL[21]), sep = ""),
+      "SILVER HAKE" = sliderInput("len1", "Select range of length(s):", min = species$MINL[22], max = species$MAXL[22], value = c(species$MINL[22],species$MAXL[22]), sep = ""),
+      "SMOOTH DOGFISH" = sliderInput("len1", "Select range of length(s):", min = species$MINL[23], max = species$MAXL[23], value = c(species$MINL[23],species$MAXL[23]), sep = ""),
+      "SMOOTH SKATE" = sliderInput("len1", "Select range of length(s):", min = species$MINL[24], max = species$MAXL[24], value = c(species$MINL[24],species$MAXL[24]), sep = ""),
+      "STRIPED BASS" = sliderInput("len1", "Select range of length(s):", min = species$MINL[25], max = species$MAXL[25], value = c(species$MINL[25],species$MAXL[25]), sep = ""),
+      "SUMMER FLOUNDER" = sliderInput("len1", "Select range of length(s):", min = species$MINL[26], max = species$MAXL[26], value = c(species$MINL[26],species$MAXL[26]), sep = ""),
+      "THORNY SKATE" = sliderInput("len1", "Select range of length(s):", min = species$MINL[27], max = species$MAXL[27], value = c(species$MINL[27],species$MAXL[27]), sep = ""),
+      "WHITE HAKE" = sliderInput("len1", "Select range of length(s):", min = species$MINL[28], max = species$MAXL[28], value = c(species$MINL[28],species$MAXL[28]), sep = ""),
+      "WINDOWPANE FLOUNDER" = sliderInput("len1", "Select range of length(s):", min = species$MINL[29], max = species$MAXL[29], value = c(species$MINL[29],species$MAXL[29]), sep = ""),
+      "WINTER FLOUNDER" = sliderInput("len1", "Select range of length(s):", min = species$MINL[30], max = species$MAXL[30], value = c(species$MINL[30],species$MAXL[30]), sep = ""),
+      "WINTER SKATE" = sliderInput("len1", "Select range of length(s):", min = species$MINL[31], max = species$MAXL[31], value = c(species$MINL[31],species$MAXL[31]), sep = ""),
+      "WITCH FLOUNDER" = sliderInput("len1", "Select range of length(s):", min = species$MINL[32], max = species$MAXL[32], value = c(species$MINL[32],species$MAXL[32]), sep = ""),
+      "YELLOWTAIL FLOUNDER" = sliderInput("len1", "Select range of length(s):", min = species$MINL[33], max = species$MAXL[33], value = c(species$MINL[33],species$MAXL[33]), sep = "")
       
     )
     
@@ -228,39 +237,39 @@ server = function(input, output, session){
       return()
     
     switch(input$species,
-      "ACADIAN REDFISH" = sliderInput("age1", "Select range of age(s)", min = species$MINA[1], max = species$MAXA[1], value = c(species$MINA[1],species$MAXA[1]), sep = ""),
-      "AMERICAN PLAICE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[2], max = species$MAXA[2], value = c(species$MINA[2],species$MAXA[2]), sep = ""),
-      "ATLANTIC COD" = sliderInput("age1", "Select range of age(s)", min = species$MINA[3], max = species$MAXA[3], value = c(species$MINA[3],species$MAXA[3]), sep = ""),
-      "ATLANTIC HERRING" = sliderInput("age1", "Select range of age(s)", min = species$MINA[4], max = species$MAXA[4], value = c(species$MINA[4],species$MAXA[4]), sep = ""),
-      "ATLANTIC MACKEREL" = sliderInput("age1", "Select range of age(s)", min = species$MINA[5], max = species$MAXA[5], value = c(species$MINA[5],species$MAXA[5]), sep = ""),
-      "ATLANTIC POLLOCK" = sliderInput("age1", "Select range of age(s)", min = species$MINA[6], max = species$MAXA[6], value = c(species$MINA[6],species$MAXA[6]), sep = ""),
-      "BARNDOOR SKATE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[7], max = species$MAXA[7], value = c(species$MINA[7],species$MAXA[7]), sep = ""),
-      "BLACK SEA BASS" = sliderInput("age1", "Select range of age(s)", min = species$MINA[8], max = species$MAXA[8], value = c(species$MINA[8],species$MAXA[8]), sep = ""),
-      "BLUEFISH" = sliderInput("age1", "Select range of age(s)", min = species$MINA[9], max = species$MAXA[9], value = c(species$MINA[9],species$MAXA[9]), sep = ""),
-      "BUTTERFISH" = sliderInput("age1", "Select range of age(s)", min = species$MINA[10], max = species$MAXA[2], value = c(species$MINA[10],species$MAXA[10]), sep = ""),
-      "CLEARNOSE SKATE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[11], max = species$MAXA[11], value = c(species$MINA[11],species$MAXA[11]), sep = ""),
-      "GOLDEN TILEFISH" = sliderInput("age1", "Select range of age(s)", min = species$MINA[12], max = species$MAXA[12], value = c(species$MINA[12],species$MAXA[12]), sep = ""),
-      "GOOSEFISH" = sliderInput("age1", "Select range of age(s)", min = species$MINA[13], max = species$MAXA[13], value = c(species$MINA[13],species$MAXA[13]), sep = ""),
-      "HADDOCK" = sliderInput("age1", "Select range of age(s)", min = species$MINA[14], max = species$MAXA[14], value = c(species$MINA[14],species$MAXA[14]), sep = ""),
-      "LITTLE SKATE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[15], max = species$MAXA[15], value = c(species$MINA[15],species$MAXA[15]), sep = ""),
-      "LONGFIN SQUID" = sliderInput("age1", "Select range of age(s)", min = species$MINA[16], max = species$MAXA[16], value = c(species$MINA[16],species$MAXA[16]), sep = ""),
-      "OFFSHORE HAKE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[17], max = species$MAXA[17], value = c(species$MINA[17],species$MAXA[17]), sep = ""),
-      "RED HAKE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[18], max = species$MAXA[18], value = c(species$MINA[18],species$MAXA[18]), sep = ""),
-      "SCUP" = sliderInput("age1", "Select range of age(s)", min = species$MINA[19], max = species$MAXA[19], value = c(species$MINA[19],species$MAXA[19]), sep = ""),
-      "SEA SCALLOP" = sliderInput("age1", "Select range of age(s)", min = species$MINA[20], max = species$MAXA[20], value = c(species$MINA[20],species$MAXA[20]), sep = ""),
-      "SHORTFIN SQUID" = sliderInput("age1", "Select range of age(s)", min = species$MINA[21], max = species$MAXA[21], value = c(species$MINA[21],species$MAXA[21]), sep = ""),
-      "SILVER HAKE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[22], max = species$MAXA[22], value = c(species$MINA[22],species$MAXA[22]), sep = ""),
-      "SMOOTH DOGFISH" = sliderInput("age1", "Select range of age(s)", min = species$MINA[23], max = species$MAXA[23], value = c(species$MINA[23],species$MAXA[23]), sep = ""),
-      "SMOOTH SKATE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[24], max = species$MAXA[24], value = c(species$MINA[24],species$MAXA[24]), sep = ""),
-      "STRIPED BASS" = sliderInput("age1", "Select range of age(s)", min = species$MINA[25], max = species$MAXA[25], value = c(species$MINA[25],species$MAXA[25]), sep = ""),
-      "SUMMER FLOUNDER" = sliderInput("age1", "Select range of age(s)", min = species$MINA[26], max = species$MAXA[26], value = c(species$MINA[26],species$MAXA[26]), sep = ""),
-      "THORNY SKATE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[27], max = species$MAXA[27], value = c(species$MINA[27],species$MAXA[27]), sep = ""),
-      "WHITE HAKE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[28], max = species$MAXA[28], value = c(species$MINA[28],species$MAXA[28]), sep = ""),
-      "WINDOWPANE FLOUNDER" = sliderInput("age1", "Select range of age(s)", min = species$MINA[29], max = species$MAXA[29], value = c(species$MINA[29],species$MAXA[29]), sep = ""),
-      "WINTER FLOUNDER" = sliderInput("age1", "Select range of age(s)", min = species$MINA[30], max = species$MAXA[30], value = c(species$MINA[30],species$MAXA[30]), sep = ""),
-      "WINTER SKATE" = sliderInput("age1", "Select range of age(s)", min = species$MINA[31], max = species$MAXA[31], value = c(species$MINA[31],species$MAXA[31]), sep = ""),
-      "WITCH FLOUNDER" = sliderInput("age1", "Select range of age(s)", min = species$MINA[32], max = species$MAXA[32], value = c(species$MINA[32],species$MAXA[32]), sep = ""),
-      "YELLOWTAIL FLOUNDER" = sliderInput("age1", "Select range of age(s)", min = species$MINA[33], max = species$MAXA[33], value = c(species$MINA[33],species$MAXA[33]), sep = "")
+      "ACADIAN REDFISH" = sliderInput("age1", "Select range of age(s):", min = species$MINA[1], max = species$MAXA[1], value = c(species$MINA[1],species$MAXA[1]), sep = ""),
+      "AMERICAN PLAICE" = sliderInput("age1", "Select range of age(s):", min = species$MINA[2], max = species$MAXA[2], value = c(species$MINA[2],species$MAXA[2]), sep = ""),
+      "ATLANTIC COD" = sliderInput("age1", "Select range of age(s):", min = species$MINA[3], max = species$MAXA[3], value = c(species$MINA[3],species$MAXA[3]), sep = ""),
+      "ATLANTIC HERRING" = sliderInput("age1", "Select range of age(s):", min = species$MINA[4], max = species$MAXA[4], value = c(species$MINA[4],species$MAXA[4]), sep = ""),
+      "ATLANTIC MACKEREL" = sliderInput("age1", "Select range of age(s):", min = species$MINA[5], max = species$MAXA[5], value = c(species$MINA[5],species$MAXA[5]), sep = ""),
+      "ATLANTIC POLLOCK" = sliderInput("age1", "Select range of age(s):", min = species$MINA[6], max = species$MAXA[6], value = c(species$MINA[6],species$MAXA[6]), sep = ""),
+      "BARNDOOR SKATE" = sliderInput("age1", "Select range of age(s):", min = species$MINA[7], max = species$MAXA[7], value = c(species$MINA[7],species$MAXA[7]), sep = ""),
+      "BLACK SEA BASS" = sliderInput("age1", "Select range of age(s):", min = species$MINA[8], max = species$MAXA[8], value = c(species$MINA[8],species$MAXA[8]), sep = ""),
+      "BLUEFISH" = sliderInput("age1", "Select range of age(s):", min = species$MINA[9], max = species$MAXA[9], value = c(species$MINA[9],species$MAXA[9]), sep = ""),
+      "BUTTERFISH" = sliderInput("age1", "Select range of age(s):", min = species$MINA[10], max = species$MAXA[2], value = c(species$MINA[10],species$MAXA[10]), sep = ""),
+      "CLEARNOSE SKATE" = sliderInput("age1", "Select range of age(s):", min = species$MINA[11], max = species$MAXA[11], value = c(species$MINA[11],species$MAXA[11]), sep = ""),
+      "GOLDEN TILEFISH" = sliderInput("age1", "Select range of age(s):", min = species$MINA[12], max = species$MAXA[12], value = c(species$MINA[12],species$MAXA[12]), sep = ""),
+      "GOOSEFISH" = sliderInput("age1", "Select range of age(s):", min = species$MINA[13], max = species$MAXA[13], value = c(species$MINA[13],species$MAXA[13]), sep = ""),
+      "HADDOCK" = sliderInput("age1", "Select range of age(s):", min = species$MINA[14], max = species$MAXA[14], value = c(species$MINA[14],species$MAXA[14]), sep = ""),
+      "LITTLE SKATE" = sliderInput("age1", "Select range of age(s):", min = species$MINA[15], max = species$MAXA[15], value = c(species$MINA[15],species$MAXA[15]), sep = ""),
+      "LONGFIN SQUID" = sliderInput("age1", "Select range of age(s):", min = species$MINA[16], max = species$MAXA[16], value = c(species$MINA[16],species$MAXA[16]), sep = ""),
+      "OFFSHORE HAKE" = sliderInput("age1", "Select range of age(s):", min = species$MINA[17], max = species$MAXA[17], value = c(species$MINA[17],species$MAXA[17]), sep = ""),
+      "RED HAKE" = sliderInput("age1", "Select range of age(s):", min = species$MINA[18], max = species$MAXA[18], value = c(species$MINA[18],species$MAXA[18]), sep = ""),
+      "SCUP" = sliderInput("age1", "Select range of age(s):", min = species$MINA[19], max = species$MAXA[19], value = c(species$MINA[19],species$MAXA[19]), sep = ""),
+      "SEA SCALLOP" = sliderInput("age1", "Select range of age(s):", min = species$MINA[20], max = species$MAXA[20], value = c(species$MINA[20],species$MAXA[20]), sep = ""),
+      "SHORTFIN SQUID" = sliderInput("age1", "Select range of age(s):", min = species$MINA[21], max = species$MAXA[21], value = c(species$MINA[21],species$MAXA[21]), sep = ""),
+      "SILVER HAKE" = sliderInput("age1", "Select range of age(s):", min = species$MINA[22], max = species$MAXA[22], value = c(species$MINA[22],species$MAXA[22]), sep = ""),
+      "SMOOTH DOGFISH" = sliderInput("age1", "Select range of age(s):", min = species$MINA[23], max = species$MAXA[23], value = c(species$MINA[23],species$MAXA[23]), sep = ""),
+      "SMOOTH SKATE" = sliderInput("age1", "Select range of age(s):", min = species$MINA[24], max = species$MAXA[24], value = c(species$MINA[24],species$MAXA[24]), sep = ""),
+      "STRIPED BASS" = sliderInput("age1", "Select range of age(s):", min = species$MINA[25], max = species$MAXA[25], value = c(species$MINA[25],species$MAXA[25]), sep = ""),
+      "SUMMER FLOUNDER" = sliderInput("age1", "Select range of age(s):", min = species$MINA[26], max = species$MAXA[26], value = c(species$MINA[26],species$MAXA[26]), sep = ""),
+      "THORNY SKATE" = sliderInput("age1", "Select range of age(s):", min = species$MINA[27], max = species$MAXA[27], value = c(species$MINA[27],species$MAXA[27]), sep = ""),
+      "WHITE HAKE" = sliderInput("age1", "Select range of age(s):", min = species$MINA[28], max = species$MAXA[28], value = c(species$MINA[28],species$MAXA[28]), sep = ""),
+      "WINDOWPANE FLOUNDER" = sliderInput("age1", "Select range of age(s):", min = species$MINA[29], max = species$MAXA[29], value = c(species$MINA[29],species$MAXA[29]), sep = ""),
+      "WINTER FLOUNDER" = sliderInput("age1", "Select range of age(s):", min = species$MINA[30], max = species$MAXA[30], value = c(species$MINA[30],species$MAXA[30]), sep = ""),
+      "WINTER SKATE" = sliderInput("age1", "Select range of age(s):", min = species$MINA[31], max = species$MAXA[31], value = c(species$MINA[31],species$MAXA[31]), sep = ""),
+      "WITCH FLOUNDER" = sliderInput("age1", "Select range of age(s):", min = species$MINA[32], max = species$MAXA[32], value = c(species$MINA[32],species$MAXA[32]), sep = ""),
+      "YELLOWTAIL FLOUNDER" = sliderInput("age1", "Select range of age(s):", min = species$MINA[33], max = species$MAXA[33], value = c(species$MINA[33],species$MAXA[33]), sep = "")
       
     )
     
