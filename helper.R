@@ -14,13 +14,14 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                                               vcf = 1,  #vessel conversion factor
                                               do.Albatross = FALSE,
                                               do.Bigelow = FALSE,
-                                              tow_swept_area = 0.01,
+                                              tow_swept_area = 0.007, #value from Tim - check?
                                               S=1,
                                               H=3,
                                               G=6,
                                               species=NULL,
                                               spring.cruises=NULL,
-                                              fall.cruises=NULL
+                                              fall.cruises=NULL,
+                                              boot=F
                                               )
   {
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -142,6 +143,12 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     len.view <- sqlQuery(oc,q.len)
     len.data <- merge(catch.data, len.view, by = c('CRUISE6','STRATUM','TOW','STATION','CATCHSEX'),  all.x=T, all.y = F)
     len.data$EXPNUMLEN=ifelse(is.na(len.data$EXPNUMLEN),0,len.data$EXPNUMLEN)
+    #Build in a place holder for bootstrapping length data
+    if(boot){
+      boot.lendat = boot.lendat.fn(len.data)
+      len.data=boot.lendata
+    }
+    
     #check to see if the entire length comp is is sample per user bounds
     #if(max(len.data$LENGTH, na.rm= T) > max(lengths)) warning(paste('max of lengths in length data = ', max(len.data$LENGTH, na.rm= T), ' whereas max of lengths given is ', max(lengths), sep = ''))
     #Changing this so the warning message is reported through the app rather than the console
@@ -198,8 +205,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       WtLenEx<- merge(len.data, age.view, by = c('CRUISE6','STRATUM','TOW','STATION','LENGTH'),  all.x = T, all.y=F)
       #Need to generate age-length keys here and then apply to the length composition
       
-      #Need to make sure we have data at this stage to proceed
-      if(nrow(WtLenEx)>0) {
+      #Need to make sure we have data at this stage to proceed (requires more than one age too)
+      if(nrow(WtLenEx[!is.na(WtLenEx$AGE),])>0) {
         #Multinomial age length key generation
         #From Jon.... 
         #library(nnet) #required for multinom in get.mult.props function below
@@ -207,7 +214,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         # based on code from Mike Bednarski and then stolen from ADIOS again
         get.mult.props<-function(big.len=NULL,big.age=NULL,ref.age=NULL){
           data<-WtLenEx[!is.na(WtLenEx$AGE),]
-          data$AGE <- relevel(as.factor(data$AGE), ref=ref.age) # relevel and make categorical
+          #data$AGE <- relevel(as.factor(data$AGE), ref=ref.age) # relevel and make categorical
+          data$AGE <- as.factor(data$AGE)
           my.levels <- as.numeric(levels(data$AGE))
           n.levels <- length(my.levels)
           mn<-nnet::multinom(AGE ~ LENGTH, data=data,verbose=F)
@@ -232,17 +240,17 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
           return(p)
         } #end get.mult.props function
         
-        mult.props<- get.mult.props(big.len=(lengths),big.age=max(ages)
-              ,ref.age = 3)
-        
-        #Filling in missing information using the age length key generated above.
-        # FixedAgeKeyyrsem$PropAge[FixedAgeKeyyrsem['NUMAGE']==0]<-
-        #   sapply(X=1:nrow(FixedAgeKeyyrsem[FixedAgeKeyyrsem['NUMAGE']==0,]),FUN=function(x) {
-        #     yearsem<-paste0(FixedAgeKeyyrsem[x,"YEAR"],FixedAgeKeyyrsem[x,"SEM"])
-        #     probs<-mult.props[yearsem]
-        #     return(probs[[1]][FixedAgeKeyyrsem[x,"LENGTH.CM"],FixedAgeKeyyrsem[x,"AGE"]+1])
-        #   }
-        #   )
+        #Can only fit this if there is more than one age!
+        if(length(unique(WtLenEx$AGE[!is.na(WtLenEx$AGE)]))>1) {
+          mult.props<- get.mult.props(big.len=(lengths),big.age=max(ages))
+              #,ref.age = 3) #don't think we need this
+        } else { #if there is only one age then you have 100% in one row
+          p <- matrix(0, nrow=length(lengths), ncol=(max(ages)+1))
+          p[min(WtLenEx$LENGTH[!is.na(WtLenEx$AGE)]):max(WtLenEx$LENGTH[!is.na(WtLenEx$AGE)])
+            ,(unique(WtLenEx$AGE[!is.na(WtLenEx$AGE)])+1)]=1
+          colnames(p)<-c(paste("pred.",0:max(ages), sep=""))
+          mult.props=p 
+        }
         
         #Now apply the age length key to the length distribution to get numbers at age  
         Naa.hat.stratum=c()
@@ -271,11 +279,44 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     out$V.Nal.stratum = Vhat.Nal.stratum #variances by length
   }
   if(do.age) out$Naa.hat.stratum <- Naa.hat.stratum
+  
+  #warning(paste0("Some strata for survey have zero tows, will extrapolate data to these areas"))
+  ZeroTows=c()
+  if(any(out$out[,"m"] ==0)) ZeroTows=out$out[which(out$out[,"m"]>0),"stratum"] 
+  out$expand = sum(M)/sum(M[which(m>0)]) #=1 if all strata are sampled
   #report warnings
-  out$warnings=list(LengthRange=Lrange,UnusedStrata=out$out[,"stratum"][out$out[,"EXPCATCHNUM"]==0.0])
+  out$warnings=list(LengthRange=Lrange,UnusedStrata=out$out[,"stratum"][out$out[,"EXPCATCHNUM"]==0.0],UnsampledStrata=ZeroTows)
   
   return(out)
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+boot.lendat.fn = function(lendat, dif=0)
+{
+  #print(head(lendat))
+  #print(dim(lendat))
+  if(is.null(lendat$id)) lendat$id = paste0(lendat$STRATUM,"_",lendat$CRUISE6, "_", lendat$STATION)
+  strata = sort(unique(lendat$STRATUM))
+  #print(strata)
+  boot.ids = unlist(sapply(strata, function(x) {
+    stratum.dat = lendat[which(lendat$STRATUM == x),]
+    ids = unique(stratum.dat$id)
+    #print(x)
+    #print(ids)
+    sample(ids, size = length(ids)-dif, replace = TRUE)
+  }))
+  #print(boot.ids)
+  boot.index = unlist(sapply(boot.ids, function(x) which(lendat$id == x)))
+  #print(boot.index)
+  boot.nindex = sapply(boot.ids, function(x) sum(lendat$id == x))
+  #print(boot.nindex)
+  #print(length(boot.nindex))
+  #print(length(boot.ids))
+  boot.ids = rep(1:length(boot.ids), boot.nindex)
+  #print(length(boot.ids))
+  #print(length(boot.index))
+  boot.lendat = lendat[boot.index,]
+  boot.lendat$id = boot.ids
+  return(boot.lendat)
+}
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

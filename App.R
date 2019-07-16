@@ -371,6 +371,10 @@ server = function(input, output, session){
     S<-input$S
     H<-input$H
     G<-input$G
+    
+    #Expand to cover unsampled strata? For now this is automatic, but could be built into an reactive input
+    Expansion=T
+    
     #Check user inputs and make a table of them for later 
     print(strata.in)
     print(seq(min(input$years),max(input$years)))
@@ -399,6 +403,7 @@ server = function(input, output, session){
     if(length(cruise6)>0){
       #Destroy the saved memory objects that are outputs
       Ind.out=c();IAL.out=c();VIAL.out=c();IAA.out=c();maxL=max(len.range);minL=min(len.range);unUsedStrata=strata.in;
+      UnSampledStrata=list();Expand=c();
       for(i in 1:length(cruise6)) {
         x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
                                                   survey = cruise6[i], 
@@ -466,20 +471,40 @@ server = function(input, output, session){
         maxL=max(maxL,max(x.out$warnings$LengthRange),na.rm=T)
         #track if any user selected strata have no observed catch for this species in any of the selected years
         unUsedStrata=unUsedStrata[unUsedStrata%in%x.out$warnings$UnusedStrata]
+        #Also track unsampled strata in each year
+        if(!is.null(x.out$warnings$UnsampledStrata)) UnSampledStrata=append(UnSampledStrata,c(Yeari,x.out$warnings$UnsampledStrata))
+        #Keep the expansion factor for unsampled strata on hand for each year
+        Expand=c(Expand,x.out$expand)
       }
+      
+      #If the user wishes to expand over unsampled strata
+      if(Expansion){
+        expnd=Expand
+      } else expnd=rep(1.,nrow(Expand))
+      
       Ind.out=as.data.frame(Ind.out)
       names(Ind.out)=c("Year","Tows","Num","Wt","VarNum","VarWt")
-      dput(Ind.out,"Ind.out") #This should make this visible to other environments for later download
+
       IAL.out=as.data.frame(IAL.out)
+      IAL.out[,ncol(IAL.out)]=IAL.out[,ncol(IAL.out)]*expnd #Expand the total to cover unsampled strata (if desired)
       names(IAL.out)=c('Year','nTows',paste(len.range,"cm",sep=""),'Total')
-      dput(IAL.out,"IAL.out") #This should make this visible to other environments for later download
+
       VIAL.out=as.data.frame(VIAL.out)
+      VIAL.out[,ncol(VIAL.out)]=VIAL.out[,ncol(VIAL.out)]*expnd^2 #Expand the total to cover unsampled strata (if desired)
       names(VIAL.out)=c('Year','nTows',paste(len.range,"cm",sep=""),'Total')
-      dput(VIAL.out,"VIAL.out") #This should make this visible to other environments for later download
+
       IAA.out=as.data.frame(IAA.out)
+      IAA.out[,ncol(IAA.out)]=IAA.out[,ncol(IAA.out)]*expnd #Expand the total to cover unsampled strata (if desired)
       names(IAA.out)=c('Year','nTows',paste0("Age",age.range),'Total')
-      dput(IAA.out,"IAA.out") #This should make this visible to other environments for later download
+
       
+
+      
+      #This should make this visible to other environments for later download 
+      dput(Ind.out,"Ind.out")      
+      dput(IAL.out,"IAL.out")       
+      dput(VIAL.out,"VIAL.out")   
+      dput(IAA.out,"IAA.out") 
       #print(IAL.out)
       #print(VIAL.out)
       #print(IAA.out)
@@ -515,7 +540,7 @@ server = function(input, output, session){
       } else print("Invalid Stratum Selection: no observations of selected species in strata")
     } else print("Invalid Stratum Selection: no observations of selected species in strata")
     
-    #show arnings in notification form and remove existing old notifications
+    #show warnings in notification form and remove existing old notifications
     if(minL<min(len.range)) {showNotification(paste0("Minimum observed size (", minL
         ,") is less than the selected minimum size (", min(len.range),")" ),id="minLid",duration=NULL,type="warning")
     } else removeNotification(id="minLid")
@@ -525,6 +550,11 @@ server = function(input, output, session){
     if(length(unUsedStrata)>0) {showNotification(paste0(" The following strata had no observed catch during the selected years: "
         ,unUsedStrata),duration=NULL,id="unusedid",type="warning")
     } else removeNotification(id="unusedid")
+    if(length(UnSampledStrata)>0) {showNotification(paste0(" The following strata had no tows during: "
+          ,paste(paste(UnSampledStrata,collapse=" , ")," \n ",collapse="")),duration=NULL,id="unTowedid",type="warning")
+    } else removeNotification(id="unTowedid")   
+    
+    
     }) #end observe "run" event
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -616,22 +646,28 @@ server = function(input, output, session){
   #______________________________________________________________________________________________________
   #Get the saved output objects
   getOutput=reactive({
-    #This is a way to get the download handler to see these values... (from an observe event above)
-    indTrack=rep(F,4) #track which indices were made
-    if(file.exists("Ind.out")) {Ind.out=dget("Ind.out"); indTrack[1]=T}
-    if(file.exists("IAL.out")) {IAL.out=dget("IAL.out"); indTrack[2]=T}
-    if(file.exists("VIAL.out")) {VIAL.out=dget("VIAL.out"); indTrack[3]=T}
-    if(file.exists("IAA.out")) {IAA.out=dget("IAA.out"); indTrack[4]=T}
-    outObjList=c("Ind.out","IAL.out","VIAL.out","IAA.out")
-    if(any(outObjList%in%objects())) {
-      #complicated, but this gets the objects that the user has requested, and not the ones they haven't!
-      All.out=list(
-      "Index"=ifelse(is.null(attr(try(get(outObjList[indTrack[1]]),silent=T),"condition")),get(outObjList[indTrack[1]]),NA)
-      ,"NatLength"=ifelse(is.null(attr(try(get(outObjList[indTrack[2]]),silent=T),"condition")),get(outObjList[indTrack[2]]),NA)
-      ,"VarNatLength"==ifelse(is.null(attr(try(get(outObjList[indTrack[3]]),silent=T),"condition")),get(outObjList[indTrack[3]]),NA)
-      ,"NatAge"=ifelse(is.null(attr(try(get(outObjList[indTrack[4]]),silent=T),"condition")),get(outObjList[indTrack[4]]),NA)
-      )
-    }
+    # #This is a way to get the download handler to see these values... (from an observe event above)
+    # indTrack=rep(F,4) #track which indices were made
+    # if(file.exists("Ind.out")) {Ind.out=dget("Ind.out"); indTrack[1]=T}
+    # if(file.exists("IAL.out")) {IAL.out=dget("IAL.out"); indTrack[2]=T}
+    # if(file.exists("VIAL.out")) {VIAL.out=dget("VIAL.out"); indTrack[3]=T}
+    # if(file.exists("IAA.out")) {IAA.out=dget("IAA.out"); indTrack[4]=T}
+    # outObjList=c("Ind.out","IAL.out","VIAL.out","IAA.out")
+    # if(any(outObjList%in%objects())) {
+    #   #complicated, but this gets the objects that the user has requested, and not the ones they haven't!
+    #   All.out=list(
+    #   "Index"=ifelse(is.null(attr(try(get(outObjList[indTrack[1]]),silent=T),"condition")),get(outObjList[indTrack[1]]),NA)
+    #   ,"NatLength"=ifelse(is.null(attr(try(get(outObjList[indTrack[2]]),silent=T),"condition")),get(outObjList[indTrack[2]]),NA)
+    #   ,"VarNatLength"==ifelse(is.null(attr(try(get(outObjList[indTrack[3]]),silent=T),"condition")),get(outObjList[indTrack[3]]),NA)
+    #   ,"NatAge"=ifelse(is.null(attr(try(get(outObjList[indTrack[4]]),silent=T),"condition")),get(outObjList[indTrack[4]]),NA)
+    #   )
+    # }
+    All.out=list(
+      "Index"=dget("Ind.out")
+      ,"NatLength"=dget("IAL.out")
+      ,"VarNatLength"=dget("VIAL.out")
+      ,"NatAge"=dget("IAA.out")
+    )
   })
   
   getInputs=reactive({
