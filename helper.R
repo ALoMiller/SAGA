@@ -8,9 +8,12 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                                               lengths = NULL, 
                                               do.length = TRUE, 
                                               do.age = FALSE,
-                                              gcf = 1,  #gear conversion factor
-                                              dcf = 1,  #door conversion factor
-                                              vcf = 1,  #vessel conversion factor
+                                              gcf.n = 1,  #gear number conversion factor
+                                              dcf.n = 1,  #door numberconversion factor
+                                              vcf.n = 1,  #vessel number conversion factor
+                                              gcf.w = 1,  #gear number conversion factor
+                                              dcf.w = 1,  #door numberconversion factor
+                                              vcf.w = 1,  #vessel number conversion factor
                                               do.Albatross = FALSE,
                                               do.Bigelow = FALSE,
                                               tow_swept_area = 0.01,
@@ -19,7 +22,10 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                                               G=6,
                                               species=NULL,
                                               spring.cruises=NULL,
-                                              fall.cruises=NULL
+                                              fall.cruises=NULL,
+                                              do.BigLen=NULL,
+                                              big.len.calib=NULL
+  
                                               )
   {
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -29,7 +35,6 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   stratum.sizes.q <- paste("select stratum, stratum_area, strgrp_desc, stratum_name from svdbs.svmstrata where STRATUM IN ('", 
                            paste(strata, collapse = "','"), "')"," order by stratum", sep = '')
   str.size <- sqlQuery(oc,stratum.sizes.q)
-  print(str.size)
   str.size$ExpAreas <- str.size$STRATUM_AREA/tow_swept_area
 
   #STATION location data 
@@ -55,7 +60,6 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                  #"where cruise6 in ('", paste(survey, collapse = "','"), "')"
                  , " and STRATUM IN ('", paste(strata, collapse = "','"), "')",
                  " and svspp = ", spp, " order by cruise6, stratum, tow, station", sep = '')
-  #print(q.cat)
   cat.view <- sqlQuery(oc,q.cat)
   #merge catch data and station location information
   catch.data <- merge(sta.view, cat.view, by = c('CRUISE6','STRATUM','TOW','STATION'),  all.x = T, all.y=F)
@@ -66,29 +70,28 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   #gear conversion - expand catch using a particular gear by the gear conversion factor.
   if(any(catch.data$SVGEAR %in% c(41,45))) { #This is an error trap for no gear of this type being in catch data
     catch.data$EXPCATCHNUM[which(is.element(catch.data$SVGEAR, c(41,45)))] <- 
-      gcf * catch.data$EXPCATCHNUM[which(is.element(catch.data$SVGEAR, c(41,45)))]
+      gcf.n * catch.data$EXPCATCHNUM[which(is.element(catch.data$SVGEAR, c(41,45)))]
     catch.data$EXPCATCHWT[which(is.element(catch.data$SVGEAR, c(41,45)))] <- 
-      gcf * catch.data$EXPCATCHWT[which(is.element(catch.data$SVGEAR, c(41,45)))]
+      gcf.w * catch.data$EXPCATCHWT[which(is.element(catch.data$SVGEAR, c(41,45)))]
   }
   #door conversion 
   if(any(catch.data$YEAR< 1985)) { #This is an error trap for no years < 1985
     catch.data$EXPCATCHNUM[which(catch.data$YEAR< 1985)] <- 
-      dcf * catch.data$EXPCATCHNUM[which(catch.data$YEAR< 1985)]
+      dcf.n * catch.data$EXPCATCHNUM[which(catch.data$YEAR< 1985)]
     catch.data$EXPCATCHWT[which(catch.data$YEAR< 1985)] <- 
-      dcf * catch.data$EXPCATCHWT[which(catch.data$YEAR< 1985)]
+      dcf.w * catch.data$EXPCATCHWT[which(catch.data$YEAR< 1985)]
   }
   #vessel conversion
   if(any(catch.data$SVVESSEL == 'DE')) { #This is an error trap for no DE vessel observations in catch data
     catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')] <- 
-      vcf * catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')]
+      vcf.n * catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')]
     catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')] <- 
-      vcf * catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')]
+      vcf.w * catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')]
   }
   #Bigelow conversion to Albatross series
   if(do.Albatross){
-    print(species)
-    print(species$BIGELOWCALTYPE[species$SVSPP==spp])
-    if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
+    print(do.Albatross)
+    if(species$BIGELOWCALTYPE[species$SVSPP==spp] == 'CONSTANT'){
         if(catch.data$CRUISE6[1] %in% fall.cruises){
           catch.data$EXPCATCHNUM[catch.data$EST_YEAR>2008] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR>2008]/species$FALLNUM[species$SVSPP==spp]
           catch.data$EXPCATCHWT[catch.data$EST_YEAR>2008] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR>2008]/species$FALLWT[species$SVSPP==spp]
@@ -101,7 +104,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   } 
   #Albatross conversion to Bigelow series
   if(do.Bigelow){
-    if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
+    if(species$BIGELOWCALTYPE[species$SVSPP==spp] == 'CONSTANT'){
       if(catch.data$CRUISE6[1] %in% fall.cruises){
         catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009]*species$FALLNUM[species$SVSPP==spp]
         catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009]*species$FALLWT[species$SVSPP==spp]
@@ -117,7 +120,6 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   M <- str.size$ExpArea #This is the proportional relationship between the area of the stratum and area of a tow...
   #This is a sum of the catch over each stratum
   
-  #print(catch.data[which(catch.data$STRATUM%in%str.size$STRATUM),c('EXPCATCHNUM','EXPCATCHWT')])
   samp.tot.n.w <- t(sapply(str.size$STRATUM, 
                            function(x) apply(catch.data[which(catch.data$STRATUM== x),c('EXPCATCHNUM','EXPCATCHWT')],2,sum)))
   #variance covariance matrix of each catch variable (why do we need covariance?)
@@ -140,9 +142,25 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     len.view <- sqlQuery(oc,q.len)
     len.data <- merge(catch.data, len.view, by = c('CRUISE6','STRATUM','TOW','STATION','CATCHSEX'),  all.x=T, all.y = F)
     len.data$EXPNUMLEN=ifelse(is.na(len.data$EXPNUMLEN),0,len.data$EXPNUMLEN)
+    #cal.Nal.hat.stratum = Nal.hat.stratum
+    print(c(do.Bigelow,do.BigLen))
+    #print(catch.data$EST_YEAR[1])
+    #stop()
+    for(i in 1:length(lengths))
+    {
+      if(do.Bigelow & do.BigLen & catch.data$EST_YEAR[1]<2009){ 
+        len.data$EXPNUMLEN[len.data$LENGTH == lengths[i]] <- len.data$EXPNUMLEN[len.data$LENGTH == lengths[i]] * big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
+      }
+      if(do.Albatross & do.BigLen & catch.data$EST_YEAR[1]>2008){ 
+        print(big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]])
+        #if(i==length(lengths)) stop()
+        len.data$EXPNUMLEN[len.data$LENGTH == lengths[i]] <- len.data$EXPNUMLEN[len.data$LENGTH == lengths[i]] / big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
+      }
+    }
     #check to see if the entire length comp is is sample per user bounds
     #if(max(len.data$LENGTH, na.rm= T) > max(lengths)) warning(paste('max of lengths in length data = ', max(len.data$LENGTH, na.rm= T), ' whereas max of lengths given is ', max(lengths), sep = ''))
     #Changing this so the warning message is reported through the app rather than the console
+    
     Lrange=range(len.data$LENGTH,na.rm = TRUE) #will report this back to the app and then determine if the user has missed some lengths
     
     #nested sapply! This sums the numbers at length in each stratum over each of the user specified lengths
@@ -157,6 +175,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     Nal.hat.stratum <- M * samp.tot.nal/m
     #Remove NA
     Nal.hat.stratum[is.na(Nal.hat.stratum)] <- 0 
+    print(head(Nal.hat.stratum))
     #Now we need to get the variances - triple nested sapply!
     #This will produce nonsense if there are strata selected with no observations!!
     S.nal.stratum <- t(sapply(str.size$STRATUM, function(x){ #The function below is applied over each strata

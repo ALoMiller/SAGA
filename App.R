@@ -41,7 +41,8 @@ get.survey.data.fn <- function(oc = sole, purpose.code = 10){
 survey.cruises <- get.survey.data.fn()
 fall.cruises <- unique(survey.cruises$CRUISE6[survey.cruises$SEASON == 'FALL'])
 spring.cruises <- unique(survey.cruises$CRUISE6[survey.cruises$SEASON == 'SPRING'])
-
+big.len.calib <- read.csv('files/ADIOSBigelowLenCalib.csv')
+big.len.calib$STOCK <- as.character(big.len.calib$STOCK)
 ############adds a MINL and MAXL lengths for each species from groundfish survey data  - takes a while so just added these to the speciesTable
  strata.list$AllStrata <- ifelse(nchar(strata.list$AllStrata)<5,paste0('0', strata.list$AllStrata),strata.list$AllStrata)
 # for (i in species$SVSPP){
@@ -87,7 +88,7 @@ ui <-
                 column(2,
                   h5(strong("Select strata:")),
                       chooserInput("mychooser", "Available strata", "Selected frobs", #new custom widget strata selection using chooser.R
-                        strata.list[,1], c(), size = 38, multiple = TRUE
+                        strata.list[,1], c(), size = 36, multiple = TRUE
                       )),
                 column(4,
                        
@@ -113,43 +114,41 @@ ui <-
                       
                       h5(strong("SHG values")),
                       fluidRow(
-                        column(3,
+                        column(2,
                                textInput("S", 
-                                         label = "Sta. <=", 
+                                         label = "Stat. <=", 
                                          value = "1", 
-                                         width = "50px")),
-                        column(3,
+                                         width = "70px")),
+                        column(2,
                               textInput("H", 
                                   label = "Haul <=" , 
                                   value = "3", 
-                                  width = "50px")),
-                        column(3,
+                                  width = "70px")),
+                        column(2,
                                textInput("G", 
                                          label = "Gear <=", 
                                          value = "6", 
-                                         width = "50px"))
+                                         width = "70px"))
                       ),
+                  fluidRow(
+                    column(5,
                   selectInput("calib_type", "Bigelow calibration:",
                     c("none", "convert to Albatross", "convert to Bigelow"),
                     selected = "none"),
-                  uiOutput("ui.big.calib"),
+                  uiOutput("ui.big.calib")),
+                    column(7,
                   selectInput("gdv_calib", "Gear/Door/Vessel calibration:",
                     c("none", "specify values"),
                     selected = "none"),
-                  uiOutput("ui.gdv.calib"),
-                  
-                  
-                       #Option to run current settings
-                       actionButton("runBtn","RUN", icon("cogs"), style="color: black; background-color: orange; border-color: grey"),
-                       br(),
-                       br(),
-                       #download data
+                  uiOutput("ui.gdv.calib"))),
+                                         
                   fluidRow(
+                    column(3,
+                      #Option to run current settings
+                      actionButton("runBtn","RUN", icon("cogs"), style="color: black; background-color: orange; border-color: grey")),
                     column(5,
-                       downloadButton('downloadData', 'Download .csv Data')),
-                       #br(),
-                       #br(),
-                       #download data2
+                      downloadButton('downloadData', 'Download .csv Data')),
+                      #download data2
                     column(4,
                        downloadButton('downloadDataR', 'Download RData'))
                 )),
@@ -177,7 +176,7 @@ ui <-
                 downloadButton('downloadMapHTML', 'Download Map (.html)'),
                 br(),
                 br(),
-                h2("User Inputs"),
+                h5(strong("User Inputs")),
                 verbatimTextOutput( outputId = "text")
               )  
               
@@ -293,6 +292,7 @@ server = function(input, output, session){
       )
     )
   })
+  
   output$ui.gdv.calib <- renderUI({  #generates dynamic UI for Bigelow calibration widget
     if (is.null(input$gdv_calib))
       return()
@@ -301,19 +301,31 @@ server = function(input, output, session){
     # UI component and send it to the client.
     switch(input$gdv_calib,
       "specify values" = fluidRow(
-        column(3,
-          textInput("gear", 
-            label = "Gear", 
+        column(4,
+          textInput("gear.num", 
+            label = "Gear num.", 
+            value = "1", 
+            width = "50px"),
+          textInput("gear.wt", 
+            label = "wt.", 
             value = "1", 
             width = "50px")),
-        column(3,
-          textInput("door", 
-            label = "Door" , 
+        column(4,
+          textInput("door.num", 
+            label = "Door num." , 
+            value = "1", 
+            width = "50px"),
+          textInput("door.wt", 
+            label = "wt." , 
             value = "1", 
             width = "50px")),
-        column(3,
-          textInput("vessel", 
-            label = "Vessel", 
+        column(4,
+          textInput("vessel.num", 
+            label = "Vessel num.", 
+            value = "1", 
+            width = "50px"),
+          textInput("vessel.wt", 
+            label = "wt.", 
             value = "1", 
             width = "50px"))
       ),
@@ -351,16 +363,25 @@ server = function(input, output, session){
     len.range <- c(input$len1[1]:input$len1[2])
     age.range <- c(input$age1[1]:input$age1[2])
     do.Albatross <- input$calib_type=="convert to Albatross"
-    print(do.Albatross)
     do.Bigelow <- input$calib_type=="convert to Bigelow"
+    do.BigLen <- input$calib_meth=="big.len.rho" #| input$calib_meth=="alb.len.rho"
+    print(do.BigLen)
+    print(input$calib_meth)
+    print(input$calib_type)
     if(input$gdv_calib=="specify values"){
-    gcf<- input$gear
-    dcf<- input$door
-    vcf<- input$vessel
+    gcf.n<- input$gear.num
+    dcf.n<- input$door.num
+    vcf.n<- input$vessel.num
+    gcf.w<- input$gear.wt
+    dcf.w<- input$door.wt
+    vcf.w<- input$vessel.wt
     } else {
-      gcf<- 1
-      dcf<- 1
-      vcf<- 1
+      gcf.n<- 1
+      dcf.n<- 1
+      vcf.n<- 1
+      gcf.w<- 1
+      dcf.w<- 1
+      vcf.w<- 1
       
     }
     #Check user inputs
@@ -368,17 +389,11 @@ server = function(input, output, session){
     H<-input$H
     G<-input$G
     #Check user inputs and make a table of them for later 
-    print(strata.in)
-    print(seq(min(input$years),max(input$years)))
-    print(cruise6)
-    print(spp)
-    print(len.range)
     #Check length range given user inputs (there is no reason to generate rows of zeros!):
     q.len <- paste("select MIN(length) as minL, MAX(length) as maxL  from svdbs.union_fscs_svlen " ,
                    " where cruise6 in ('", paste(cruise6, collapse="','"), "')"
                    , " and STRATUM IN('", paste(ifelse(nchar(strata.in)<5,paste0('0', strata.in),strata.in), collapse = "','")
                    , "')"," and svspp = ", spp, ";", sep = '')
-    print(q.len)
     len.view <- as.data.frame(sqlQuery(sole,q.len))
     #adjust length range and report in console
     #if(min(len.range)<len.view$MINL | max(len.range)>len.view$MAXL) print("Adjusting user requested lengths to range of observed values")
@@ -402,13 +417,20 @@ server = function(input, output, session){
                                                   lengths = len.range, 
                                                   do.length = TRUE, 
                                                   do.age = FALSE,
-                                                  gcf = gcf, 
-                                                  dcf = dcf, 
-                                                  vcf = vcf, 
+                                                  gcf.n = gcf.n, 
+                                                  dcf.n = dcf.n, 
+                                                  vcf.n = vcf.n, 
+                                                  gcf.w = gcf.w, 
+                                                  dcf.w = dcf.w, 
+                                                  vcf.w = vcf.w, 
                                                   do.Albatross = do.Albatross,
                                                   do.Bigelow = do.Bigelow,
                                                   tow_swept_area = 0.01,
-                                                  species=species, fall.cruises=fall.cruises,spring.cruises=spring.cruises,
+                                                  species=species, 
+                                                  fall.cruises=fall.cruises,
+                                                  spring.cruises=spring.cruises,
+                                                  do.BigLen=do.BigLen,
+                                                  big.len.calib=big.len.calib,
                                                   S=S,H=H,G=G)
         
         #Take the important parts from x.out to generate an index over time.
@@ -601,7 +623,7 @@ server = function(input, output, session){
   })
   
   output$downloadData <- downloadHandler(
-    filename = function() { paste(input$species, input$season, min(input$minLength), max(input$maxLength), '.csv', sep='_') },
+    filename = function() { paste(input$species, input$season, min(input$len1[1]), max(input$len1[2]), '.csv', sep='_') },
     content = function(file) {
 
       All.out=getOutput()
@@ -625,7 +647,7 @@ server = function(input, output, session){
   )
   
   output$downloadDataR <- downloadHandler(
-    filename = function() { paste(input$species, input$season, min(input$minLength), max(input$maxLength), '.Rdata', sep='_') },
+    filename = function() { paste(input$species, input$season, min(input$len1[1]), max(input$len1[2]), '.RData', sep='_') },
     content = function(file) {
       
       All.out=getOutput()
