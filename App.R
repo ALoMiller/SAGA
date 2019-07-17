@@ -84,6 +84,10 @@ ui <-
     dashboardHeader(title = "NEFSC Survey Data Portal"), #"Portal" is not showing up in the sidebar
     dashboardSidebar(
       #Port user between options for mapping application or SAGA clone
+      #This is for error validation
+      tags$head(
+        tags$style(HTML(".shiny-output-error-validation {color: red;}"))
+            ),
       sidebarMenu(style = "position: fixed; overflow: visible;",
                   menuItem(
                     "Survey Indices", 
@@ -350,12 +354,12 @@ server = function(input, output, session){
  
     
   observeEvent(input$runBtn,{ #if run button is pushed:
-    #print(c("mycheck",length(input$mychooser$right)))
     req(input$mychooser$right)
-    
+
+    yrs=seq(min(input$years),max(input$years))
     #grab cruise6 from the rows with matching season and year
     cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season & 
-                                        survey.cruises$YEAR %in% seq(min(input$years),max(input$years))]
+                                        survey.cruises$YEAR %in% yrs]
     spp <- species$SVSPP[species$COMNAME == input$species] #species name as well
     #strata.in = paste(input$strata, collapse = "','")
     #strata.in <- input$strata #the strata selected by the user
@@ -472,8 +476,10 @@ server = function(input, output, session){
         #track if any user selected strata have no observed catch for this species in any of the selected years
         unUsedStrata=unUsedStrata[unUsedStrata%in%x.out$warnings$UnusedStrata]
         #Also track unsampled strata in each year
-        if(!is.null(x.out$warnings$UnsampledStrata)) UnSampledStrata=append(UnSampledStrata,c(Yeari,x.out$warnings$UnsampledStrata))
-        #Keep the expansion factor for unsampled strata on hand for each year
+        if(!is.null(x.out$warnings$UnsampledStrata)) {
+          UnSampledStrata=append(UnSampledStrata,c(Yeari,x.out$warnings$UnsampledStrata))
+        }
+         #Keep the expansion factor for unsampled strata on hand for each year
         Expand=c(Expand,x.out$expand)
       }
       
@@ -550,8 +556,18 @@ server = function(input, output, session){
     if(length(unUsedStrata)>0) {showNotification(paste0(" The following strata had no observed catch during the selected years: "
         ,unUsedStrata),duration=NULL,id="unusedid",type="warning")
     } else removeNotification(id="unusedid")
-    if(length(UnSampledStrata)>0) {showNotification(paste0(" The following strata had no tows during: "
-          ,paste(paste(UnSampledStrata,collapse=" , ")," \n ",collapse="")),duration=NULL,id="unTowedid",type="warning")
+    if(length(UnSampledStrata)>0) {
+      #CheckTows=paste0(" The following strata had no tows during: "
+       #                ,paste(paste(UnSampledStrata,collapse=" , ")," \n ",collapse=""))
+      lineBrk=" <br></br> "
+      UnSampledStrata2=ifelse(UnSampledStrata%in%yrs, paste0(lineBrk,UnSampledStrata,":  "),UnSampledStrata )
+      #print(str(UnSampledStrata))
+      #print(UnSampledStrata)
+      # CheckTows=apply(UnSampledStrata,1,FUN=function(x) paste(x,collapse=" , "))
+      # CheckTows=paste(CheckTows,"\n",collapse="")
+       CheckTows=shiny::HTML(paste0(" The following strata had no tows: ",paste0(UnSampledStrata2,collapse = " ")))
+       print(CheckTows)
+       showNotification2(CheckTows,duration=NULL,id="unTowedid",type="warning")
     } else removeNotification(id="unTowedid")   
     
     
@@ -625,7 +641,7 @@ server = function(input, output, session){
   })
   
   output$myMap = leaflet::renderLeaflet({
-     foundational.map() #This just calls the reactive map
+    foundational.map() #This just calls the reactive map
   })
 
   # store the current user-created version
