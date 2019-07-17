@@ -354,6 +354,12 @@ server = function(input, output, session){
  
     
   observeEvent(input$runBtn,{ #if run button is pushed:
+
+    if(length(input$mychooser$right)>0) {
+      showNotification("PLEASE CHOOSE AT LEAST ONE STRATUM!!"
+            ,id="strataChosen",duration=NULL,type="error")
+    } else removeNotification(id="strataChosen")    
+    
     req(input$mychooser$right)
 
     yrs=seq(min(input$years),max(input$years))
