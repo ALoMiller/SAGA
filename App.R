@@ -44,35 +44,54 @@ spring.cruises <- unique(survey.cruises$CRUISE6[survey.cruises$SEASON == 'SPRING
 big.len.calib <- read.csv('files/BigelowLenCalib.csv')
 # big.len.calib <- read.csv('files/ADIOSBigelowLenCalib.csv')
 # big.len.calib$STOCK <- as.character(big.len.calib$STOCK)
+
 ############adds a MINL and MAXL lengths for each species from groundfish survey data  - takes a while so just added these to the speciesTable
- strata.list$AllStrata <- ifelse(nchar(strata.list$AllStrata)<5,paste0('0', strata.list$AllStrata),strata.list$AllStrata)
+strata.list$AllStrata <- ifelse(nchar(strata.list$AllStrata)<5,paste0('0', strata.list$AllStrata),strata.list$AllStrata)
 # for (i in species$SVSPP){
 #   if(i==species$SVSPP[1]){
-#     first.run <- sqlQuery(sole,paste0("select MIN(length) as minL, MAX(length) as maxL  
-#       from svdbs.union_fscs_svlen  
+#     first.run <- sqlQuery(sole,paste0("select MIN(length) as minL, MAX(length) as maxL
+#       from svdbs.union_fscs_svlen
 #       where cruise6 in ('", paste(c(fall.cruises,spring.cruises), collapse = "','"),"') and stratum in ('", paste(strata.list$AllStrata, collapse = "','"),"') and svspp = ", i))
 #   }
 #   if(i!=species$SVSPP[1]){
-#     temp2 <- sqlQuery(sole,paste0("select MIN(length) as minL, MAX(length) as maxL  
-#       from svdbs.union_fscs_svlen  
+#     temp2 <- sqlQuery(sole,paste0("select MIN(length) as minL, MAX(length) as maxL
+#       from svdbs.union_fscs_svlen
+#       where cruise6 in ('", paste(c(fall.cruises,spring.cruises), collapse = "','"),"') and stratum in ('", paste(strata.list$AllStrata, collapse = "','"),"') and svspp = ", i))
+#     first.run <- rbind(first.run,temp2)
+#   }
+# 
+# }
+# species <- cbind(species,first.run)
+# for (i in species$SVSPP){
+#   if(i==species$SVSPP[1]){
+#     first.run <- sqlQuery(sole,paste0("select MIN(age) as minA, MAX(age) as maxA
+#       from svdbs.union_fscs_svbio
+#       where cruise6 in ('", paste(c(fall.cruises,spring.cruises), collapse = "','"),"') and stratum in ('", paste(strata.list$AllStrata, collapse = "','"),"') and svspp = ", i))
+#   }
+#   if(i!=species$SVSPP[1]){
+#     temp2 <- sqlQuery(sole,paste0("select MIN(age) as minA, MAX(age) as maxA
+#       from svdbs.union_fscs_svbio
+
 #       where cruise6 in ('", paste(c(fall.cruises,spring.cruises), collapse = "','"),"') and stratum in ('", paste(strata.list$AllStrata, collapse = "','"),"') and svspp = ", i))
 #     first.run <- rbind(first.run,temp2)
 #   }
 #   
 # }
 # species <- cbind(species,first.run)
+#output of the above querry
+# tab.out=species[,c(1,2,3,20,21)]
+# write.csv(tab.out,file="agesOut.csv")
+
 # 
 # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ui <-
   dashboardPage(
     dashboardHeader(title = "NEFSC Survey Data Portal"), #"Portal" is not showing up in the sidebar
-      dashboardSidebar(
-        #Port user between options for mapping application or SAGA clone
-        sidebarMenu(style = "position: fixed; overflow: visible;",
-          menuItem(
-            "Survey Indices", 
-            tabName = "indices", 
-            icon = icon("globe")
+    dashboardSidebar(
+      #Port user between options for mapping application or SAGA clone
+      #This is for error validation
+      tags$head(
+        tags$style(HTML(".shiny-output-error-validation {color: red;}"))
             ),
           menuItem(
             "Maps", 
@@ -80,7 +99,7 @@ ui <-
             icon = icon("globe")
             )
         )
-      ),
+    ),
       dashboardBody(
         tabItems(
           tabItem(
@@ -160,11 +179,81 @@ ui <-
                 column(6,
                   plotOutput("myPlots")
                   )
-              
+      )
+    ),
+    dashboardBody(
+      tabItems(
+        tabItem(
+          tabName = "indices",                        #SAGA clone application user options 
+          fluidRow(
+            column(2,
+                   chooserInput("mychooser", "Available strata", "Selected frobs", #new custom widget strata selection using chooser.R
+                                strata.list[,1], c(), size = 40, multiple = TRUE
+                   )),
+            column(3,
+                   
+                   selectInput("species", "Select species:",              #Species drop menu
+                               choices =  species$COMNAME, 
+                               selected = "BLACK SEA BASS"),
+                   
+                   radioButtons("season", "Choose season:",               #species radio buttons - switch map check boxes to these?  Probably a good idea.
+                                choices = list("SPRING" = "SPRING", "FALL" = "FALL"), 
+                                selected = "SPRING"),
+                   
+                   sliderInput("years", "Select range of year(s)",            #Years slider
+                               min = 1950, 
+                               max = 2019,
+                               value = c(2009,2018), sep = ""),
+                   uiOutput("ui.len"),
+                   uiOutput("ui.age"),
+                   
+                   h5(strong("SHG values")),
+                   fluidRow(
+                     column(3,
+                            textInput("S", 
+                                      label = "Sta. <=", 
+                                      value = "1", 
+                                      width = "50px")),
+                     column(3,
+                            textInput("H", 
+                                      label = "Haul <=" , 
+                                      value = "3", 
+                                      width = "50px")),
+                     column(3,
+                            textInput("G", 
+                                      label = "Gear <=", 
+                                      value = "6", 
+                                      width = "50px"))
+                   ),
+                   selectInput("calib_type", "Bigelow calibration",
+                               c("none", "convert to Albatross", "convert to Bigelow"),
+                               selected = "none"),
+                   uiOutput("ui.big.calib"),
+                   selectInput("gdv_calib", "Gear/Door/Vessel calibration",
+                               c("none", "specify values"),
+                               selected = "none"),
+                   uiOutput("ui.gdv.calib"),
+                   
+                   
+                   #Option to run current settings
+                   actionButton("runBtn","RUN"),
+                   br(),
+                   br(),
+                   #download data
+                   downloadButton('downloadData', 'Download .csv Data'),
+                   br(),
+                   br(),
+                   #download data2
+                   downloadButton('downloadDataR', 'Download RData')
+            ),
+            column(7,
+                   plotOutput("myPlots")
             )
+            
+          )
           # Show a plot of the generated survey indices by strata 
           #tabPanel("N (all sizes and ages) by strata",
-           #      plotOutput("myPlots")
+          #      plotOutput("myPlots")
           #)
         ),
         tabItem(
@@ -190,6 +279,7 @@ ui <-
        )
     )
   )
+)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 server = function(input, output, session){
   source("helper.R")  #moved the stratification calculation function out the server function for ease of reading the code
@@ -307,6 +397,7 @@ server = function(input, output, session){
 #       unique(big.len.calib$STOCK[big.len.calib$SVSPP==input$spp]))
 #   )
 # })
+
   output$ui.gdv.calib <- renderUI({  #generates dynamic UI for Bigelow calibration widget
     if (is.null(input$gdv_calib))
       return()
@@ -360,14 +451,22 @@ server = function(input, output, session){
     reactiveValuesToList(input)[c("species","years","season","mychooser")] 
     #,input$mychooser$right,input$years,input$season,input$S,input$H,input$G))
     })
-  
-  observeEvent(input$runBtn,{ #if run button is pushed:
-    #print(c("mycheck",length(input$mychooser$right)))
-    req(input$mychooser$right)
+
+ 
     
+  observeEvent(input$runBtn,{ #if run button is pushed:
+
+    if(length(input$mychooser$right)==0) {
+      showNotification("PLEASE CHOOSE AT LEAST ONE STRATUM!!"
+            ,id="strataChosen",duration=NULL,type="error")
+    } else removeNotification(id="strataChosen")    
+    
+    req(input$mychooser$right)
+
+    yrs=seq(min(input$years),max(input$years))
     #grab cruise6 from the rows with matching season and year
     cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season & 
-                                        survey.cruises$YEAR %in% seq(min(input$years),max(input$years))]
+                                        survey.cruises$YEAR %in% yrs]
     spp <- species$SVSPP[species$COMNAME == input$species] #species name as well
     
     strata.in <- input$mychooser$right
@@ -400,10 +499,15 @@ server = function(input, output, session){
       vcf.w<- 1
       
     }
+
     #Check user inputs
     S<-input$S
     H<-input$H
     G<-input$G
+    
+    #Expand to cover unsampled strata? For now this is automatic, but could be built into an reactive input
+    Expansion=T
+    
     #Check user inputs and make a table of them for later 
     #Check length range given user inputs (there is no reason to generate rows of zeros!):
     q.len <- paste("select MIN(length) as minL, MAX(length) as maxL  from svdbs.union_fscs_svlen " ,
@@ -416,21 +520,23 @@ server = function(input, output, session){
     #if(min(len.range)<len.view$MINL) len.range <- len.range[which(len.range>=len.view$MINL)]
     #if(max(len.range)>len.view$MAXL) len.range <- len.range[which(len.range<=len.view$MAXL)]
     #if(input$minLength<len.view$MINL | input$maxLength>len.view$MAXL) print(c("New range: ",len.range))
-
     #print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season ])
     #print(survey.cruises$CRUISE6[survey.cruises$YEAR %in% seq(min(input$years),max(input$years))])
-    userInputs=list("Species"=input$species,"Strata"=strata.in,"Years"=seq(min(input$years),max(input$years))
-                    ,"Season"=input$season,"Lengths"=len.range)
+    userInputs=list("species"=input$species,"strata"=strata.in,"years"=seq(min(input$years),max(input$years))
+                    ,"season"=input$season,"len.range"=len.range,"age.range"=age.range)
     dput(userInputs,"user.Inputs") #other environments can see this after reading 
     
     if(length(cruise6)>0){
-      Ind.out=c();IAL.out=c();VIAL.out=c();maxL=max(len.range);minL=min(len.range);unUsedStrata=strata.in;
+      #Destroy the saved memory objects that are outputs
+      Ind.out=c();IAL.out=c();VIAL.out=c();IAA.out=c();maxL=max(len.range);minL=min(len.range);unUsedStrata=strata.in;
+      UnSampledStrata=list();Expand=c();
       for(i in 1:length(cruise6)) {
         x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
                                                   survey = cruise6[i], 
                                                   oc = sole, 
                                                   strata = strata.in,
-                                                  lengths = len.range, 
+                                                  lengths = len.range,
+                                                  age = age.range,
                                                   do.length = TRUE, 
                                                   do.age = FALSE,
                                                   gcf.n = gcf.n, 
@@ -456,16 +562,19 @@ server = function(input, output, session){
         
         #Generate products for later download and plotting:
         #grab the Num,Wt and generate stratified means 
-        SMns=colSums(x.out$out[,c(4:5)][!is.na(x.out$out[,4]),]*
-                       x.out$out[,"M"][!is.na(x.out$out[,4])])/sum(x.out$out[,"M"][!is.na(x.out$out[,4])])
+        goodRows=(x.out$out[,"m"]>0)
+        SMns=colSums(x.out$out[,c(4:5)][goodRows,]*
+                       x.out$out[,"M"][goodRows],na.rm=T)/sum(x.out$out[,"M"][goodRows])
         #Now get the variances
-        Svars=colSums(x.out$out[,c(6:7)][!is.na(x.out$out[,4]),]*
-                        (x.out$out[,"M"][!is.na(x.out$out[,4])]^2))/sum(x.out$out[,"M"][!is.na(x.out$out[,4])])^2
+        goodRows=(x.out$out[,"m"]>1)
+        Svars=colSums(x.out$out[,c(6:7)][goodRows,]*
+                        (x.out$out[,"M"][goodRows]^2),na.rm=T)/sum(x.out$out[,"M"][goodRows])^2
         Ind.out<-rbind(Ind.out,c(Yeari,Tows
                     ,SMns,Svars)) 
         #The indices at length require similar manipulation
         #IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum/x.out$out[,"M"])
         #    ,"Total"=sum(colSums(x.out$Nal.hat.stratum/x.out$out[,"M"]))))  #Add a "Total" which is the index over the sizes of interest
+        goodRows=(x.out$out[,"m"]>0)
         IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum/sum(x.out$out[,"M"]))
                                  ,"Total"=sum(colSums(x.out$Nal.hat.stratum/sum(x.out$out[,"M"])))))  #Add a "Total" which is the index over the sizes of interest
         
@@ -473,25 +582,62 @@ server = function(input, output, session){
         VIAL.out<-rbind(VIAL.out,c(Yeari,Tows,colSums(x.out$V.Nal.stratum/sum(x.out$out[,"M"])^2)
               ,"Total"=sum(colSums(x.out$V.Nal.stratum/sum(x.out$out[,"M"])^2)))) #remove stratum area expansion
         
+        
+        print(c(Yeari,Tows))
+        print(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"])))
+        print(sum(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"]))))
+              
+        
+        IAA.out<-rbind(IAA.out,c(Yeari,Tows,colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"]))
+                                 ,"Total"=sum(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"])))))
+        print(IAA.out)
+        #Do we need a separate variance calc for the number at age?
+        
         #Warnings next - first make sure the warnings are consistent through time
         #Get the min and max observed size for all years
         minL=min(minL,min(x.out$warnings$LengthRange),na.rm=T)
         maxL=max(maxL,max(x.out$warnings$LengthRange),na.rm=T)
         #track if any user selected strata have no observed catch for this species in any of the selected years
         unUsedStrata=unUsedStrata[unUsedStrata%in%x.out$warnings$UnusedStrata]
+        #Also track unsampled strata in each year
+        if(!is.null(x.out$warnings$UnsampledStrata)) {
+          UnSampledStrata=append(UnSampledStrata,c(Yeari,x.out$warnings$UnsampledStrata))
+        }
+         #Keep the expansion factor for unsampled strata on hand for each year
+        Expand=c(Expand,x.out$expand)
       }
+      
+      #If the user wishes to expand over unsampled strata
+      if(Expansion){
+        expnd=Expand
+      } else expnd=rep(1.,nrow(Expand))
+      
       Ind.out=as.data.frame(Ind.out)
       names(Ind.out)=c("Year","Tows","Num","Wt","VarNum","VarWt")
-      dput(Ind.out,"Ind.out") #This should make this visible to other environments for later download
+
       IAL.out=as.data.frame(IAL.out)
+      IAL.out[,ncol(IAL.out)]=IAL.out[,ncol(IAL.out)]*expnd #Expand the total to cover unsampled strata (if desired)
       names(IAL.out)=c('Year','nTows',paste(len.range,"cm",sep=""),'Total')
-      dput(IAL.out,"IAL.out") #This should make this visible to other environments for later download
+
       VIAL.out=as.data.frame(VIAL.out)
+      VIAL.out[,ncol(VIAL.out)]=VIAL.out[,ncol(VIAL.out)]*expnd^2 #Expand the total to cover unsampled strata (if desired)
       names(VIAL.out)=c('Year','nTows',paste(len.range,"cm",sep=""),'Total')
-      dput(VIAL.out,"VIAL.out") #This should make this visible to other environments for later download
+
+      IAA.out=as.data.frame(IAA.out)
+      IAA.out[,ncol(IAA.out)]=IAA.out[,ncol(IAA.out)]*expnd #Expand the total to cover unsampled strata (if desired)
+      names(IAA.out)=c('Year','nTows',paste0("Age",age.range),'Total')
+
       
+
+      
+      #This should make this visible to other environments for later download 
+      dput(Ind.out,"Ind.out")      
+      dput(IAL.out,"IAL.out")       
+      dput(VIAL.out,"VIAL.out")   
+      dput(IAA.out,"IAA.out") 
       #print(IAL.out)
       #print(VIAL.out)
+      #print(IAA.out)
       #print(unUsedStrata)
       #print(c(minL,maxL))
       
@@ -524,7 +670,7 @@ server = function(input, output, session){
       } else print("Invalid Stratum Selection: no observations of selected species in strata")
     } else print("Invalid Stratum Selection: no observations of selected species in strata")
     
-    #show arnings in notification form and remove existing old notifications
+    #show warnings in notification form and remove existing old notifications
     if(minL<min(len.range)) {showNotification(paste0("Minimum observed size (", minL
         ,") is less than the selected minimum size (", min(len.range),")" ),id="minLid",duration=NULL,type="warning")
     } else removeNotification(id="minLid")
@@ -534,6 +680,21 @@ server = function(input, output, session){
     if(length(unUsedStrata)>0) {showNotification(paste0(" The following strata had no observed catch during the selected years: "
         ,unUsedStrata),duration=NULL,id="unusedid",type="warning")
     } else removeNotification(id="unusedid")
+    if(length(UnSampledStrata)>0) {
+      #CheckTows=paste0(" The following strata had no tows during: "
+       #                ,paste(paste(UnSampledStrata,collapse=" , ")," \n ",collapse=""))
+      lineBrk=" <br></br> "
+      UnSampledStrata2=ifelse(UnSampledStrata%in%yrs, paste0(lineBrk,UnSampledStrata,":  "),UnSampledStrata )
+      #print(str(UnSampledStrata))
+      #print(UnSampledStrata)
+      # CheckTows=apply(UnSampledStrata,1,FUN=function(x) paste(x,collapse=" , "))
+      # CheckTows=paste(CheckTows,"\n",collapse="")
+       CheckTows=shiny::HTML(paste0(" The following strata had no tows: ",paste0(UnSampledStrata2,collapse = " ")))
+       print(CheckTows)
+       showNotification2(CheckTows,duration=NULL,id="unTowedid",type="warning")
+    } else removeNotification(id="unTowedid")   
+    
+    
     }) #end observe "run" event
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -604,7 +765,7 @@ server = function(input, output, session){
   })
   
   output$myMap = leaflet::renderLeaflet({
-     foundational.map() #This just calls the reactive map
+    foundational.map() #This just calls the reactive map
   })
 
   # store the current user-created version
@@ -625,14 +786,28 @@ server = function(input, output, session){
   #______________________________________________________________________________________________________
   #Get the saved output objects
   getOutput=reactive({
-    #This is a way to get the download handler to see these values... (from an observe event above)
-    if(file.exists("Ind.out")) Ind.out=dget("Ind.out")
-    if(file.exists("IAL.out")) IAL.out=dget("IAL.out")
-    if(file.exists("VIAL.out")) VIAL.out=dget("VIAL.out")
-    if(all(c("VIAL.out","IAL.out","Ind.out")%in%objects())) {
-      All.out=list("Index"=(Ind.out),"NatLength"=(IAL.out), "VarNatLength"=(VIAL.out))
-      #print(names(All.out))
-    }
+    # #This is a way to get the download handler to see these values... (from an observe event above)
+    # indTrack=rep(F,4) #track which indices were made
+    # if(file.exists("Ind.out")) {Ind.out=dget("Ind.out"); indTrack[1]=T}
+    # if(file.exists("IAL.out")) {IAL.out=dget("IAL.out"); indTrack[2]=T}
+    # if(file.exists("VIAL.out")) {VIAL.out=dget("VIAL.out"); indTrack[3]=T}
+    # if(file.exists("IAA.out")) {IAA.out=dget("IAA.out"); indTrack[4]=T}
+    # outObjList=c("Ind.out","IAL.out","VIAL.out","IAA.out")
+    # if(any(outObjList%in%objects())) {
+    #   #complicated, but this gets the objects that the user has requested, and not the ones they haven't!
+    #   All.out=list(
+    #   "Index"=ifelse(is.null(attr(try(get(outObjList[indTrack[1]]),silent=T),"condition")),get(outObjList[indTrack[1]]),NA)
+    #   ,"NatLength"=ifelse(is.null(attr(try(get(outObjList[indTrack[2]]),silent=T),"condition")),get(outObjList[indTrack[2]]),NA)
+    #   ,"VarNatLength"==ifelse(is.null(attr(try(get(outObjList[indTrack[3]]),silent=T),"condition")),get(outObjList[indTrack[3]]),NA)
+    #   ,"NatAge"=ifelse(is.null(attr(try(get(outObjList[indTrack[4]]),silent=T),"condition")),get(outObjList[indTrack[4]]),NA)
+    #   )
+    # }
+    All.out=list(
+      "Index"=dget("Ind.out")
+      ,"NatLength"=dget("IAL.out")
+      ,"VarNatLength"=dget("VIAL.out")
+      ,"NatAge"=dget("IAA.out")
+    )
   })
   
   getInputs=reactive({
@@ -676,17 +851,17 @@ server = function(input, output, session){
     }
   )
   
-  output$downloadMap <- downloadHandler(
-    filename = function() { paste("SurveyMap",input$species, input$season, min(input$minLength), max(input$maxLength), '.pdf', sep='_') },
-    content = function(file) {
-      mapview::mapshot( x = user.created.map()
-               , file = file
-               , cliprect = "viewport" # the clipping rectangle matches the height & width from the viewing port
-               , selfcontained = FALSE # when this was not specified, the function for produced a PDF of two pages: one of the leaflet map, the other a blank page.
-      )  
-      
-    }
-  )  
+  # output$downloadMap <- downloadHandler(
+  #   filename = function() { paste("SurveyMap",input$species, input$season, min(input$minLength), max(input$maxLength), '.pdf', sep='_') },
+  #   content = function(file) {
+  #     mapview::mapshot( x = user.created.map()
+  #              , file = file
+  #              , cliprect = "viewport" # the clipping rectangle matches the height & width from the viewing port
+  #              , selfcontained = FALSE # when this was not specified, the function for produced a PDF of two pages: one of the leaflet map, the other a blank page.
+  #     )  
+  #     
+  #   }
+  # )  
   
   output$downloadMapHTML <- downloadHandler(
     filename = function() { paste("SurveyMap",input$species, input$season, min(input$minLength), max(input$maxLength), '.html', sep='_') },
