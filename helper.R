@@ -24,8 +24,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                                               species=NULL,
                                               spring.cruises=NULL,
                                               fall.cruises=NULL,
-                                              do.BigLen=NULL,
-                                              do.AlbLen=NULL,
+                                              do.BigLen=F,
+                                              do.AlbLen=F,
                                               big.len.calib=NULL,
                                               boot=F
                                               )
@@ -118,7 +118,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     }
   } 
   #Albatross conversion to Bigelow series
-  if(do.Bigelow& !do.BigLen){
+  if(do.Bigelow & !do.BigLen){
     if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
       if(catch.data$CRUISE6[1] %in% fall.cruises){
         catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009]*species$FALLNUM[species$SVSPP==spp]

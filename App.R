@@ -89,95 +89,16 @@ ui <-
     dashboardHeader(title = "NEFSC Survey Data Portal"), #"Portal" is not showing up in the sidebar
     dashboardSidebar(
       #Port user between options for mapping application or SAGA clone
-      #This is for error validation
-      tags$head(
-        tags$style(HTML(".shiny-output-error-validation {color: red;}"))
-            ),
-          menuItem(
-            "Maps", 
-            tabName = "maps", 
-            icon = icon("globe")
-            )
-        )
-    ),
-      dashboardBody(
-        tabItems(
-          tabItem(
-            tabName = "indices",                        #SAGA clone application user options 
-              fluidRow(
-                column(6,
-                  fluidRow(
-                column(4,
-                  h5(strong("Select strata:")),
-                      chooserInput("mychooser", "Available strata", "Selected frobs", #new custom widget strata selection using chooser.R
-                        strata.list[,1], c(), size = 36, multiple = TRUE
-                      )),
-                column(8,
-                       
-                       selectInput("species", "Select species:",              #Species drop menu
-                                   choices =  species$COMNAME, 
-                                   selected = "BLACK SEA BASS"),
-                       
-                  fluidRow(
-                    column(3,
-                      radioButtons("season", "Choose season:",               #species radio buttons - switch map check boxes to these?  Probably a good idea.
-                                    choices = list("SPRING" = "SPRING", "FALL" = "FALL"), 
-                                    selected = "SPRING")),
-                    column(9,   
-                       sliderInput("years", "Select range of year(s):",            #Years slider
-                                  min = 1950, 
-                                  max = 2019,
-                                  value = c(2009,2018), sep = ""))),
-                  fluidRow(
-                    column(6,
-                       uiOutput("ui.len")),
-                    column(6,
-                       uiOutput("ui.age"))),
-                      
-                      h5(strong("SHG values")),
-                      fluidRow(
-                        column(2,
-                               textInput("S", 
-                                         label = "Stat. <=", 
-                                         value = "1", 
-                                         width = "70px")),
-                        column(2,
-                              textInput("H", 
-                                  label = "Haul <=" , 
-                                  value = "3", 
-                                  width = "70px")),
-                        column(2,
-                               textInput("G", 
-                                         label = "Gear <=", 
-                                         value = "6", 
-                                         width = "70px"))
-                      ),
-                  fluidRow(
-                    column(5,
-                  selectInput("calib_type", "Bigelow calibration:",
-                    c("none", "convert to Albatross", "convert to Bigelow"),
-                    selected = "none"),
-                  uiOutput("ui.big.calib")),
-                  #uiOutput("ui.big.calib.stock")    ),
-                    column(7,
-                  selectInput("gdv_calib", "Gear/Door/Vessel calibration:",
-                    c("none", "specify values"),
-                    selected = "none"),
-                  uiOutput("ui.gdv.calib"))),
-                                         
-                  fluidRow(
-                    column(3,
-                      #Option to run current settings
-                      actionButton("runBtn","RUN", icon("cogs"), style="color: black; background-color: orange; border-color: grey")),
-                    column(5,
-                      downloadButton('downloadData', 'Download .csv Data')),
-                      #download data2
-                    column(4,
-                       downloadButton('downloadDataR', 'Download RData'))
-                )))
+      sidebarMenu(style = "position: fixed; overflow: visible;",
+                  menuItem(
+                    "Survey Indices", 
+                    tabName = "indices", 
+                    icon = icon("globe")
                   ),
-                column(6,
-                  plotOutput("myPlots")
+                  menuItem(
+                    "Maps", 
+                    tabName = "maps", 
+                    icon = icon("globe")
                   )
       )
     ),
@@ -186,67 +107,78 @@ ui <-
         tabItem(
           tabName = "indices",                        #SAGA clone application user options 
           fluidRow(
-            column(2,
-                   chooserInput("mychooser", "Available strata", "Selected frobs", #new custom widget strata selection using chooser.R
-                                strata.list[,1], c(), size = 40, multiple = TRUE
-                   )),
-            column(3,
-                   
-                   selectInput("species", "Select species:",              #Species drop menu
-                               choices =  species$COMNAME, 
-                               selected = "BLACK SEA BASS"),
-                   
-                   radioButtons("season", "Choose season:",               #species radio buttons - switch map check boxes to these?  Probably a good idea.
-                                choices = list("SPRING" = "SPRING", "FALL" = "FALL"), 
-                                selected = "SPRING"),
-                   
-                   sliderInput("years", "Select range of year(s)",            #Years slider
-                               min = 1950, 
-                               max = 2019,
-                               value = c(2009,2018), sep = ""),
-                   uiOutput("ui.len"),
-                   uiOutput("ui.age"),
-                   
-                   h5(strong("SHG values")),
+            column(6,
                    fluidRow(
-                     column(3,
-                            textInput("S", 
-                                      label = "Sta. <=", 
-                                      value = "1", 
-                                      width = "50px")),
-                     column(3,
-                            textInput("H", 
-                                      label = "Haul <=" , 
-                                      value = "3", 
-                                      width = "50px")),
-                     column(3,
-                            textInput("G", 
-                                      label = "Gear <=", 
-                                      value = "6", 
-                                      width = "50px"))
-                   ),
-                   selectInput("calib_type", "Bigelow calibration",
-                               c("none", "convert to Albatross", "convert to Bigelow"),
-                               selected = "none"),
-                   uiOutput("ui.big.calib"),
-                   selectInput("gdv_calib", "Gear/Door/Vessel calibration",
-                               c("none", "specify values"),
-                               selected = "none"),
-                   uiOutput("ui.gdv.calib"),
-                   
-                   
-                   #Option to run current settings
-                   actionButton("runBtn","RUN"),
-                   br(),
-                   br(),
-                   #download data
-                   downloadButton('downloadData', 'Download .csv Data'),
-                   br(),
-                   br(),
-                   #download data2
-                   downloadButton('downloadDataR', 'Download RData')
+                     column(4,
+                            h5(strong("Select strata:")),
+                            chooserInput("mychooser", "Available strata", "Selected frobs", #new custom widget strata selection using chooser.R
+                                         strata.list[,1], c(), size = 36, multiple = TRUE
+                            )),
+                     column(8,
+                            
+                            selectInput("species", "Select species:",              #Species drop menu
+                                        choices =  species$COMNAME, 
+                                        selected = "BLACK SEA BASS"),
+                            
+                            fluidRow(
+                              column(3,
+                                     radioButtons("season", "Choose season:",               #species radio buttons - switch map check boxes to these?  Probably a good idea.
+                                                  choices = list("SPRING" = "SPRING", "FALL" = "FALL"), 
+                                                  selected = "SPRING")),
+                              column(9,   
+                                     sliderInput("years", "Select range of year(s):",            #Years slider
+                                                 min = 1950, 
+                                                 max = 2019,
+                                                 value = c(2009,2018), sep = ""))),
+                            fluidRow(
+                              column(6,
+                                     uiOutput("ui.len")),
+                              column(6,
+                                     uiOutput("ui.age"))),
+                            
+                            h5(strong("SHG values")),
+                            fluidRow(
+                              column(2,
+                                     textInput("S", 
+                                               label = "Stat. <=", 
+                                               value = "1", 
+                                               width = "70px")),
+                              column(2,
+                                     textInput("H", 
+                                               label = "Haul <=" , 
+                                               value = "3", 
+                                               width = "70px")),
+                              column(2,
+                                     textInput("G", 
+                                               label = "Gear <=", 
+                                               value = "6", 
+                                               width = "70px"))
+                            ),
+                            fluidRow(
+                              column(5,
+                                     selectInput("calib_type", "Bigelow calibration:",
+                                                 c("none", "convert to Albatross", "convert to Bigelow"),
+                                                 selected = "none"),
+                                     uiOutput("ui.big.calib")),
+                              #uiOutput("ui.big.calib.stock")    ),
+                              column(7,
+                                     selectInput("gdv_calib", "Gear/Door/Vessel calibration:",
+                                                 c("none", "specify values"),
+                                                 selected = "none"),
+                                     uiOutput("ui.gdv.calib"))),
+                            
+                            fluidRow(
+                              column(3,
+                                     #Option to run current settings
+                                     actionButton("runBtn","RUN", icon("cogs"), style="color: black; background-color: orange; border-color: grey")),
+                              column(5,
+                                     downloadButton('downloadData', 'Download .csv Data')),
+                              #download data2
+                              column(4,
+                                     downloadButton('downloadDataR', 'Download RData'))
+                            )))
             ),
-            column(7,
+            column(6,
                    plotOutput("myPlots")
             )
             
@@ -257,30 +189,30 @@ ui <-
           #)
         ),
         tabItem(
-            tabName = "maps", #Define Mapping app options
-            fluidRow(
-              column(width = 9,
-                     leafletOutput("myMap", height = "91.5vh")
-                ),
-              column(width = 3,
-                #download data
-                downloadButton('downloadMap', 'Download Map (.pdf)'),
-                br(),
-                br(),
-                downloadButton('downloadMapHTML', 'Download Map (.html)'),
-                br(),
-                br(),
-                h5(strong("User Inputs")),
-                verbatimTextOutput( outputId = "text")
-              )  
-              
-            )
-          )   
-       )
+          tabName = "maps", #Define Mapping app options
+          fluidRow(
+            column(width = 9,
+                   leafletOutput("myMap", height = "91.5vh")
+            ),
+            column(width = 3,
+                   #download data
+                   downloadButton('downloadMap', 'Download Map (.pdf)'),
+                   br(),
+                   br(),
+                   downloadButton('downloadMapHTML', 'Download Map (.html)'),
+                   br(),
+                   br(),
+                   h5(strong("User Inputs")),
+                   verbatimTextOutput( outputId = "text")
+            )  
+            
+          )
+        )   
+      )
     )
   )
-)
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 server = function(input, output, session){
   source("helper.R")  #moved the stratification calculation function out the server function for ease of reading the code
   #it is now in helper.R
@@ -538,7 +470,7 @@ server = function(input, output, session){
                                                   lengths = len.range,
                                                   age = age.range,
                                                   do.length = TRUE, 
-                                                  do.age = FALSE,
+                                                  do.age = T,
                                                   gcf.n = gcf.n, 
                                                   dcf.n = dcf.n, 
                                                   vcf.n = vcf.n, 
@@ -584,6 +516,8 @@ server = function(input, output, session){
         
         
         print(c(Yeari,Tows))
+        print(sum(x.out$out[,"M"]))
+        print((x.out$Naa.hat.stratum))
         print(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"])))
         print(sum(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"]))))
               
