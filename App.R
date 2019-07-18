@@ -403,7 +403,10 @@ server = function(input, output, session){
     
     strata.in <- input$mychooser$right
     len.range <- c(input$len1[1]:input$len1[2])
-    age.range <- c(input$age1[1]:input$age1[2])
+    do.age=T
+    if(!is.null(input$age[1]) & !is.null(input$age[2])) {
+      age.range <- c(input$age1[1]:input$age1[2])
+    } else do.age=F
     do.Albatross <- input$calib_type=="convert to Albatross"
     do.Bigelow <- input$calib_type=="convert to Bigelow"
     if(is.null(input$calib_meth)){
@@ -470,7 +473,7 @@ server = function(input, output, session){
                                                   lengths = len.range,
                                                   age = age.range,
                                                   do.length = TRUE, 
-                                                  do.age = T,
+                                                  do.age = do.age,
                                                   gcf.n = gcf.n, 
                                                   dcf.n = dcf.n, 
                                                   vcf.n = vcf.n, 
@@ -516,15 +519,17 @@ server = function(input, output, session){
         
         
         print(c(Yeari,Tows))
-        print(sum(x.out$out[,"M"]))
-        print((x.out$Naa.hat.stratum))
-        print(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"])))
-        print(sum(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"]))))
+        # print(sum(x.out$out[,"M"]))
+        # print((x.out$Naa.hat.stratum))
+        # print(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"])))
+        # print(sum(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"]))))
               
         
-        IAA.out<-rbind(IAA.out,c(Yeari,Tows,colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"]))
+        if(do.age) { 
+          IAA.out<-rbind(IAA.out,c(Yeari,Tows,colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"]))
                                  ,"Total"=sum(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"])))))
-        print(IAA.out)
+        #print(IAA.out)
+        } 
         #Do we need a separate variance calc for the number at age?
         
         #Warnings next - first make sure the warnings are consistent through time
@@ -558,9 +563,10 @@ server = function(input, output, session){
       names(VIAL.out)=c('Year','nTows',paste(len.range,"cm",sep=""),'Total')
 
       IAA.out=as.data.frame(IAA.out)
+      if(do.age) {
       IAA.out[,ncol(IAA.out)]=IAA.out[,ncol(IAA.out)]*expnd #Expand the total to cover unsampled strata (if desired)
       names(IAA.out)=c('Year','nTows',paste0("Age",age.range),'Total')
-
+      } else IAA.out="No ages"
       
 
       
