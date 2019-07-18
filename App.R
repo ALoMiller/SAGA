@@ -441,16 +441,19 @@ server = function(input, output, session){
         
         #Generate products for later download and plotting:
         #grab the Num,Wt and generate stratified means 
-        SMns=colSums(x.out$out[,c(4:5)][!is.na(x.out$out[,4]),]*
-                       x.out$out[,"M"][!is.na(x.out$out[,4])],na.rm=T)/sum(x.out$out[,"M"][!is.na(x.out$out[,4])])
+        goodRows=(x.out$out[,"m"]>0)
+        SMns=colSums(x.out$out[,c(4:5)][goodRows,]*
+                       x.out$out[,"M"][goodRows],na.rm=T)/sum(x.out$out[,"M"][goodRows])
         #Now get the variances
-        Svars=colSums(x.out$out[,c(6:7)][!is.na(x.out$out[,4]),]*
-                        (x.out$out[,"M"][!is.na(x.out$out[,4])]^2),na.rm=T)/sum(x.out$out[,"M"][!is.na(x.out$out[,4])])^2
+        goodRows=(x.out$out[,"m"]>1)
+        Svars=colSums(x.out$out[,c(6:7)][goodRows,]*
+                        (x.out$out[,"M"][goodRows]^2),na.rm=T)/sum(x.out$out[,"M"][goodRows])^2
         Ind.out<-rbind(Ind.out,c(Yeari,Tows
                     ,SMns,Svars)) 
         #The indices at length require similar manipulation
         #IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum/x.out$out[,"M"])
         #    ,"Total"=sum(colSums(x.out$Nal.hat.stratum/x.out$out[,"M"]))))  #Add a "Total" which is the index over the sizes of interest
+        goodRows=(x.out$out[,"m"]>0)
         IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum/sum(x.out$out[,"M"]))
                                  ,"Total"=sum(colSums(x.out$Nal.hat.stratum/sum(x.out$out[,"M"])))))  #Add a "Total" which is the index over the sizes of interest
         
