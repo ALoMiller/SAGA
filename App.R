@@ -86,12 +86,14 @@ ui <-
           tabItem(
             tabName = "indices",                        #SAGA clone application user options 
               fluidRow(
-                column(2,
+                column(6,
+                  fluidRow(
+                column(4,
                   h5(strong("Select strata:")),
                       chooserInput("mychooser", "Available strata", "Selected frobs", #new custom widget strata selection using chooser.R
                         strata.list[,1], c(), size = 36, multiple = TRUE
                       )),
-                column(4,
+                column(8,
                        
                        selectInput("species", "Select species:",              #Species drop menu
                                    choices =  species$COMNAME, 
@@ -153,7 +155,8 @@ ui <-
                       #download data2
                     column(4,
                        downloadButton('downloadDataR', 'Download RData'))
-                )),
+                )))
+                  ),
                 column(6,
                   plotOutput("myPlots")
                   )
