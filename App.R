@@ -41,8 +41,9 @@ get.survey.data.fn <- function(oc = sole, purpose.code = 10){
 survey.cruises <- get.survey.data.fn()
 fall.cruises <- unique(survey.cruises$CRUISE6[survey.cruises$SEASON == 'FALL'])
 spring.cruises <- unique(survey.cruises$CRUISE6[survey.cruises$SEASON == 'SPRING'])
-big.len.calib <- read.csv('files/ADIOSBigelowLenCalib.csv')
-big.len.calib$STOCK <- as.character(big.len.calib$STOCK)
+big.len.calib <- read.csv('files/BigelowLenCalib.csv')
+# big.len.calib <- read.csv('files/ADIOSBigelowLenCalib.csv')
+# big.len.calib$STOCK <- as.character(big.len.calib$STOCK)
 ############adds a MINL and MAXL lengths for each species from groundfish survey data  - takes a while so just added these to the speciesTable
  strata.list$AllStrata <- ifelse(nchar(strata.list$AllStrata)<5,paste0('0', strata.list$AllStrata),strata.list$AllStrata)
 # for (i in species$SVSPP){
@@ -136,6 +137,7 @@ ui <-
                     c("none", "convert to Albatross", "convert to Bigelow"),
                     selected = "none"),
                   uiOutput("ui.big.calib")),
+                  #uiOutput("ui.big.calib.stock")    ),
                     column(7,
                   selectInput("gdv_calib", "Gear/Door/Vessel calibration:",
                     c("none", "specify values"),
@@ -293,6 +295,15 @@ server = function(input, output, session){
     )
   })
   
+#   output$ui.big.calib.stock <- renderUI({  #generates dynamic UI for Bigelow calibration widget
+#     if (is.null(input$calib_meth))
+#       return()
+#     # If input$calib_meth is set for length, we'll generate a stock selection dropdown
+#   switch(input$calib_meth,
+#     "length" = selectInput("calib_stock", "Choose stock:",
+#       unique(big.len.calib$STOCK[big.len.calib$SVSPP==input$spp]))
+#   )
+# })
   output$ui.gdv.calib <- renderUI({  #generates dynamic UI for Bigelow calibration widget
     if (is.null(input$gdv_calib))
       return()
@@ -355,19 +366,21 @@ server = function(input, output, session){
     cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season & 
                                         survey.cruises$YEAR %in% seq(min(input$years),max(input$years))]
     spp <- species$SVSPP[species$COMNAME == input$species] #species name as well
-    #strata.in = paste(input$strata, collapse = "','")
-    #strata.in <- input$strata #the strata selected by the user
     
     strata.in <- input$mychooser$right
-    #strata.in <- input$mychooser
     len.range <- c(input$len1[1]:input$len1[2])
     age.range <- c(input$age1[1]:input$age1[2])
     do.Albatross <- input$calib_type=="convert to Albatross"
     do.Bigelow <- input$calib_type=="convert to Bigelow"
-    do.BigLen <- input$calib_meth=="big.len.rho" #| input$calib_meth=="alb.len.rho"
-    print(do.BigLen)
-    print(input$calib_meth)
-    print(input$calib_type)
+    if(is.null(input$calib_meth)){
+      do.BigLen <- FALSE
+      do.AlbLen <- FALSE
+    }
+      else{
+        do.BigLen <- input$calib_meth=="big.len.rho"
+        do.AlbLen <- input$calib_meth=="alb.len.rho"
+      }
+    
     if(input$gdv_calib=="specify values"){
     gcf.n<- input$gear.num
     dcf.n<- input$door.num
@@ -430,6 +443,7 @@ server = function(input, output, session){
                                                   fall.cruises=fall.cruises,
                                                   spring.cruises=spring.cruises,
                                                   do.BigLen=do.BigLen,
+                                                  do.AlbLen=do.AlbLen,
                                                   big.len.calib=big.len.calib,
                                                   S=S,H=H,G=G)
         

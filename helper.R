@@ -24,6 +24,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                                               spring.cruises=NULL,
                                               fall.cruises=NULL,
                                               do.BigLen=NULL,
+                                              do.AlbLen=NULL,
                                               big.len.calib=NULL
   
                                               )
@@ -89,9 +90,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       vcf.w * catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')]
   }
   #Bigelow conversion to Albatross series
-  if(do.Albatross){
-    print(do.Albatross)
-    if(species$BIGELOWCALTYPE[species$SVSPP==spp] == 'CONSTANT'){
+  if(do.Albatross & !do.AlbLen){
+    if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
         if(catch.data$CRUISE6[1] %in% fall.cruises){
           catch.data$EXPCATCHNUM[catch.data$EST_YEAR>2008] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR>2008]/species$FALLNUM[species$SVSPP==spp]
           catch.data$EXPCATCHWT[catch.data$EST_YEAR>2008] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR>2008]/species$FALLWT[species$SVSPP==spp]
@@ -103,8 +103,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     }
   } 
   #Albatross conversion to Bigelow series
-  if(do.Bigelow){
-    if(species$BIGELOWCALTYPE[species$SVSPP==spp] == 'CONSTANT'){
+  if(do.Bigelow& !do.BigLen){
+    if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
       if(catch.data$CRUISE6[1] %in% fall.cruises){
         catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009]*species$FALLNUM[species$SVSPP==spp]
         catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009]*species$FALLWT[species$SVSPP==spp]
@@ -143,18 +143,13 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     len.data <- merge(catch.data, len.view, by = c('CRUISE6','STRATUM','TOW','STATION','CATCHSEX'),  all.x=T, all.y = F)
     len.data$EXPNUMLEN=ifelse(is.na(len.data$EXPNUMLEN),0,len.data$EXPNUMLEN)
     #cal.Nal.hat.stratum = Nal.hat.stratum
-    print(c(do.Bigelow,do.BigLen))
-    #print(catch.data$EST_YEAR[1])
-    #stop()
     for(i in 1:length(lengths))
     {
       if(do.Bigelow & do.BigLen & catch.data$EST_YEAR[1]<2009){ 
-        len.data$EXPNUMLEN[len.data$LENGTH == lengths[i]] <- len.data$EXPNUMLEN[len.data$LENGTH == lengths[i]] * big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
+        len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] * big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
       }
-      if(do.Albatross & do.BigLen & catch.data$EST_YEAR[1]>2008){ 
-        print(big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]])
-        #if(i==length(lengths)) stop()
-        len.data$EXPNUMLEN[len.data$LENGTH == lengths[i]] <- len.data$EXPNUMLEN[len.data$LENGTH == lengths[i]] / big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
+      if(do.Albatross & do.AlbLen & catch.data$EST_YEAR[1]>2008){ 
+        len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] / big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
       }
     }
     #check to see if the entire length comp is is sample per user bounds
