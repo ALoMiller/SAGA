@@ -140,17 +140,17 @@ ui <-
                             fluidRow(
                               column(2,
                                      textInput("S", 
-                                               label = "Stat. <=", 
+                                               label = HTML("Sta. &le;"), 
                                                value = "1", 
                                                width = "70px")),
                               column(2,
                                      textInput("H", 
-                                               label = "Haul <=" , 
+                                               label = HTML("Haul &le;"), 
                                                value = "3", 
                                                width = "70px")),
                               column(2,
                                      textInput("G", 
-                                               label = "Gear <=", 
+                                               label = HTML("Gear &le;"), 
                                                value = "6", 
                                                width = "70px"))
                             ),
@@ -374,9 +374,10 @@ server = function(input, output, session){
     )
   })
   
-  output$selection <- renderPrint(
+  output$selection <- renderPrint({
+    if(is.null(get_data())){return ()}
     input$mychooser$right
-  )
+  })
   # print list of input events
   output$text <- renderPrint({
     #reactiveValuesToList(input[which(substr(names(input),1,4)=="map_")])
@@ -387,7 +388,7 @@ server = function(input, output, session){
  
     
   observeEvent(input$runBtn,{ #if run button is pushed:
-
+    
     if(length(input$mychooser$right)==0) {
       showNotification("PLEASE CHOOSE AT LEAST ONE STRATUM!!"
             ,id="strataChosen",duration=NULL,type="error")
@@ -457,13 +458,18 @@ server = function(input, output, session){
     userInputs=list("species"=input$species,"strata"=strata.in,"years"=seq(min(input$years),max(input$years))
                     ,"season"=input$season,"len.range"=len.range,"age.range"=age.range)
     dput(userInputs,"user.Inputs") #other environments can see this after reading 
-    
+    withProgress(message='Applying inputs',{
+      for (i in 1:10) {
+        incProgress(1/10)
+        Sys.sleep(0.25)
+      }
+    })
     if(length(cruise6)>0){
       #Destroy the saved memory objects that are outputs
       Ind.out=c();IAL.out=c();VIAL.out=c();IAA.out=c();maxL=max(len.range);minL=min(len.range);unUsedStrata=strata.in;
       UnSampledStrata=list();Expand=c();
       for(i in 1:length(cruise6)) {
-        x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
+       x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
                                                   survey = cruise6[i], 
                                                   oc = sole, 
                                                   strata = strata.in,
@@ -514,7 +520,12 @@ server = function(input, output, session){
         VIAL.out<-rbind(VIAL.out,c(Yeari,Tows,colSums(x.out$V.Nal.stratum/sum(x.out$out[,"M"])^2)
               ,"Total"=sum(colSums(x.out$V.Nal.stratum/sum(x.out$out[,"M"])^2)))) #remove stratum area expansion
         
-        
+        withProgress(message=paste0('Calculating indices for ',yrs[i]),{
+          for (i in 1:10) {
+            incProgress(1/10)
+            Sys.sleep(0.25)
+          }
+        })
         print(c(Yeari,Tows))
         print(sum(x.out$out[,"M"]))
         print((x.out$Naa.hat.stratum))
@@ -578,7 +589,7 @@ server = function(input, output, session){
       #plot the indices for something to look at after a successful run
       if(!is.na(x.out[[2]][1,1])) { #Check to make sure x.out was loaded before attempting to plot
         output$myPlots <- renderPlot({
-          
+         
           #plot1 <- ggplot(as.data.frame(x.out$out), aes(x=stratum, y= EXPCATCHNUM)) +
           #    geom_bar(stat="identity") +
           # theme_bw()
@@ -634,10 +645,11 @@ server = function(input, output, session){
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   #                                       MAP section 
   #______________________________________________________________________________________________________
-  get_data <- reactive({ #This is the get data button
+  observeEvent(input$runBtn,{ #if run button is pushed:
+    
+    get_data <- reactive({ #This is the get data button
     #Get user inputs
     strata <- input$mychooser$right
-    #strata <- input$mychooser
     strata <- ifelse(nchar(strata)<5,paste0('0', strata),strata) #fix for when this is run twice - it adds another 0 and causes many errors
     S<-input$S
     H<-input$H
@@ -654,17 +666,14 @@ server = function(input, output, session){
     sta.view <- sqlQuery(sole,q.sta, as.is = c(TRUE, rep(FALSE,22))) 
     sta.view$SEASON <- rep('SPRING',NROW(sta.view))
     sta.view$SEASON[sta.view$CRUISE6 %in% fall.cruises] <- 'FALL'
-    #print(table(sta.view$SEASON))  
-    #print(head(sta.view))
+    
     q.cat <- paste0("select id, cruise6, stratum, tow, station, svspp, catchsex, expcatchwt, expcatchnum from union_fscs_svcat ",
                     "where cruise6 IN (", paste(c(fall.cruises,spring.cruises), collapse = ','), ")",
                     " and STRATUM IN ('", paste(strata, collapse = "','"), "')",
                     "and svspp = ", species$SVSPP[species$COMNAME==input$species], 
                     " order by cruise6, stratum, tow, station", sep = '')
     cat.view <- sqlQuery(sole,q.cat, as.is = c(TRUE, rep(FALSE,8)))
-    #print(head(cat.view))
     catch.data <- merge(sta.view, cat.view, by = 'ID',  all.x = T, all.y=F)
-    #print(head(catch.data))
     catch.data$EXPCATCHNUM[is.na(catch.data$EXPCATCHNUM)] <- 0
     catch.data$EXPCATCHWT[is.na(catch.data$EXPCATCHWT)] <- 0
     bins.points <- c(10,25,50,75,100000000000)    # arbitrary decisions regarding catch/tow bins for right panel plot - "<5","5-10","10-50","50-100",">100"
@@ -680,6 +689,7 @@ server = function(input, output, session){
   })
   
   foundational.map <- reactive({
+    
     #builds the map from sql query and inputs
     catch.data <- get_data()
     # print(table(catch.data$SEASON)) 
@@ -696,6 +706,7 @@ server = function(input, output, session){
                                "Season: ",catch.data$SEASON[catch.data$EXPCATCHNUM>0]),
                  stroke = FALSE, fillOpacity = 0.4,
                  radius = catch.data$bubbleSize[catch.data$EXPCATCHNUM>0]*5000)  
+  
   })
   
   output$myMap = leaflet::renderLeaflet({
@@ -714,7 +725,7 @@ server = function(input, output, session){
                , zoom = input$map_zoom
       )
   }) # end of creating user.created.map()
-  
+  })
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   #                                       Output handling section 
   #______________________________________________________________________________________________________
