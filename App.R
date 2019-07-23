@@ -384,10 +384,16 @@ server = function(input, output, session){
     #,input$mychooser$right,input$years,input$season,input$S,input$H,input$G))
     })
 
- 
-    
+   #This makes a variable that is assigned inside the observe event environment, but visible outside it (use <<- to assign in
+   # the observe event function).   
+   All.out<-list()
+   makeReactiveBinding("All.out")
+  
+  
   observeEvent(input$runBtn,{ #if run button is pushed:
-
+    
+    print("Running")
+    
     if(length(input$mychooser$right)==0) {
       showNotification("PLEASE CHOOSE AT LEAST ONE STRATUM!!"
             ,id="strataChosen",duration=NULL,type="error")
@@ -404,9 +410,13 @@ server = function(input, output, session){
     strata.in <- input$mychooser$right
     len.range <- c(input$len1[1]:input$len1[2])
     do.age=T
+    print(input$age)
     if(!is.null(input$age[1]) & !is.null(input$age[2])) {
       age.range <- c(input$age1[1]:input$age1[2])
-    } else do.age=F
+    } else {
+      do.age=F
+      age.range <- NULL
+    }
     do.Albatross <- input$calib_type=="convert to Albatross"
     do.Bigelow <- input$calib_type=="convert to Bigelow"
     if(is.null(input$calib_meth)){
@@ -466,7 +476,7 @@ server = function(input, output, session){
       Ind.out=c();IAL.out=c();VIAL.out=c();IAA.out=c();maxL=max(len.range);minL=min(len.range);unUsedStrata=strata.in;
       UnSampledStrata=list();Expand=c();
       for(i in 1:length(cruise6)) {
-        x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
+          x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
                                                   survey = cruise6[i], 
                                                   oc = sole, 
                                                   strata = strata.in,
@@ -489,151 +499,147 @@ server = function(input, output, session){
                                                   do.BigLen=do.BigLen,
                                                   do.AlbLen=do.AlbLen,
                                                   big.len.calib=big.len.calib,
-                                                  S=S,H=H,G=G)
+                                                  S=S,H=H,G=G
+                                                  )
         
-        #Take the important parts from x.out to generate an index over time.
-        Yeari=as.integer(substr(paste(cruise6[i]),1,4))
-        Tows=sum(x.out$out[,"m"]) #number of tows in the year in question
-        
-        #Generate products for later download and plotting:
-        #grab the Num,Wt and generate stratified means 
-        goodRows=(x.out$out[,"m"]>0)
-        SMns=colSums(x.out$out[,c(4:5)][goodRows,]*
-                       x.out$out[,"M"][goodRows],na.rm=T)/sum(x.out$out[,"M"][goodRows])
-        #Now get the variances
-        goodRows=(x.out$out[,"m"]>1)
-        Svars=colSums(x.out$out[,c(6:7)][goodRows,]*
-                        (x.out$out[,"M"][goodRows]^2),na.rm=T)/sum(x.out$out[,"M"][goodRows])^2
-        Ind.out<-rbind(Ind.out,c(Yeari,Tows
-                    ,SMns,Svars)) 
-        #The indices at length require similar manipulation
-        #IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum/x.out$out[,"M"])
-        #    ,"Total"=sum(colSums(x.out$Nal.hat.stratum/x.out$out[,"M"]))))  #Add a "Total" which is the index over the sizes of interest
-        goodRows=(x.out$out[,"m"]>0)
-        IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum/sum(x.out$out[,"M"]))
-                                 ,"Total"=sum(colSums(x.out$Nal.hat.stratum/sum(x.out$out[,"M"])))))  #Add a "Total" which is the index over the sizes of interest
-        
-        #divide by the stratum area to get unexpanded numbers at length
-        VIAL.out<-rbind(VIAL.out,c(Yeari,Tows,colSums(x.out$V.Nal.stratum/sum(x.out$out[,"M"])^2)
-              ,"Total"=sum(colSums(x.out$V.Nal.stratum/sum(x.out$out[,"M"])^2)))) #remove stratum area expansion
-        
-        
-        print(c(Yeari,Tows))
-        # print(sum(x.out$out[,"M"]))
-        # print((x.out$Naa.hat.stratum))
-        # print(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"])))
-        # print(sum(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"]))))
-              
-        
-        if(do.age) { 
-          IAA.out<-rbind(IAA.out,c(Yeari,Tows,colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"]))
-                                 ,"Total"=sum(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"])))))
-        #print(IAA.out)
-        } 
-        #Do we need a separate variance calc for the number at age?
-        
-        #Warnings next - first make sure the warnings are consistent through time
-        #Get the min and max observed size for all years
-        minL=min(minL,min(x.out$warnings$LengthRange),na.rm=T)
-        maxL=max(maxL,max(x.out$warnings$LengthRange),na.rm=T)
-        #track if any user selected strata have no observed catch for this species in any of the selected years
-        unUsedStrata=unUsedStrata[unUsedStrata%in%x.out$warnings$UnusedStrata]
-        #Also track unsampled strata in each year
-        if(!is.null(x.out$warnings$UnsampledStrata)) {
-          UnSampledStrata=append(UnSampledStrata,c(Yeari,x.out$warnings$UnsampledStrata))
-        }
-         #Keep the expansion factor for unsampled strata on hand for each year
-        Expand=c(Expand,x.out$expand)
-      }
-      
-      #If the user wishes to expand over unsampled strata
-      if(Expansion){
-        expnd=Expand
-      } else expnd=rep(1.,nrow(Expand))
-      
-      Ind.out=as.data.frame(Ind.out)
-      names(Ind.out)=c("Year","Tows","Num","Wt","VarNum","VarWt")
-
-      IAL.out=as.data.frame(IAL.out)
-      IAL.out[,ncol(IAL.out)]=IAL.out[,ncol(IAL.out)]*expnd #Expand the total to cover unsampled strata (if desired)
-      names(IAL.out)=c('Year','nTows',paste(len.range,"cm",sep=""),'Total')
-
-      VIAL.out=as.data.frame(VIAL.out)
-      VIAL.out[,ncol(VIAL.out)]=VIAL.out[,ncol(VIAL.out)]*expnd^2 #Expand the total to cover unsampled strata (if desired)
-      names(VIAL.out)=c('Year','nTows',paste(len.range,"cm",sep=""),'Total')
-
-      IAA.out=as.data.frame(IAA.out)
-      if(do.age) {
-      IAA.out[,ncol(IAA.out)]=IAA.out[,ncol(IAA.out)]*expnd #Expand the total to cover unsampled strata (if desired)
-      names(IAA.out)=c('Year','nTows',paste0("Age",age.range),'Total')
-      } else IAA.out="No ages"
-      
-
-      
-      #This should make this visible to other environments for later download 
-      dput(Ind.out,"Ind.out")      
-      dput(IAL.out,"IAL.out")       
-      dput(VIAL.out,"VIAL.out")   
-      dput(IAA.out,"IAA.out") 
-      #print(IAL.out)
-      #print(VIAL.out)
-      #print(IAA.out)
-      #print(unUsedStrata)
-      #print(c(minL,maxL))
-      
-      #plot the indices for something to look at after a successful run
-      if(!is.na(x.out[[2]][1,1])) { #Check to make sure x.out was loaded before attempting to plot
-        output$myPlots <- renderPlot({
+          #Take the important parts from x.out to generate an index over time.
+          Yeari=as.integer(substr(paste(cruise6[i]),1,4))
+          Tows=sum(x.out$out[,"m"]) #number of tows in the year in question
           
-          #plot1 <- ggplot(as.data.frame(x.out$out), aes(x=stratum, y= EXPCATCHNUM)) +
-          #    geom_bar(stat="identity") +
-          # theme_bw()
-          if(nrow(Ind.out)>1){ #make sure there is more than one year to plot
-            #calculate a confidence interval to add to plot - just using the normal approximation here
-            ci=data.frame(Ind.out,"lci"=Ind.out$Wt-1.96*(sqrt(Ind.out$VarWt))  #/Ind.out$Tows
-                          ,"uci"=Ind.out$Wt+1.96*(sqrt(Ind.out$VarWt) ))  #/Ind.out$Tows
-            
-            #alternative is the Buckland (1993) method (these are waaay bigger)
-            #logvar=log(1+Ind.out$VarWt/(Ind.out$Wt)^2)
-            #ci=data.frame(Ind.out,"lci"=Ind.out$Wt*logvar,"uci"=Ind.out$Wt/logvar )
-            
-            print(ci)
-            
-            plot1<-ggplot(Ind.out, aes(x=Year, y=Wt)) +
-                 geom_line() +
-                 geom_ribbon(data=ci,aes(ymin=lci,ymax=uci),alpha=0.3) +
-                 theme_bw()
-  
-            print(plot1)
+          #Generate products for later download and plotting:
+          #grab the Num,Wt and generate stratified means 
+          goodRows=(x.out$out[,"m"]>0)
+          SMns=colSums(x.out$out[,c(4:5)][goodRows,]*
+                         x.out$out[,"M"][goodRows],na.rm=T)/sum(x.out$out[,"M"][goodRows])
+          #Now get the variances
+          goodRows=(x.out$out[,"m"]>1)
+          Svars=colSums(x.out$out[,c(6:7)][goodRows,]*
+                          (x.out$out[,"M"][goodRows]^2),na.rm=T)/sum(x.out$out[,"M"][goodRows])^2
+          Ind.out<-rbind(Ind.out,c(Yeari,Tows
+                      ,SMns,Svars)) 
+          #The indices at length require similar manipulation
+          #IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum/x.out$out[,"M"])
+          #    ,"Total"=sum(colSums(x.out$Nal.hat.stratum/x.out$out[,"M"]))))  #Add a "Total" which is the index over the sizes of interest
+          goodRows=(x.out$out[,"m"]>0)
+          IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum/sum(x.out$out[,"M"]))
+                                   ,"Total"=sum(colSums(x.out$Nal.hat.stratum/sum(x.out$out[,"M"])))))  #Add a "Total" which is the index over the sizes of interest
+          
+          #divide by the stratum area to get unexpanded numbers at length
+          VIAL.out<-rbind(VIAL.out,c(Yeari,Tows,colSums(x.out$V.Nal.stratum/sum(x.out$out[,"M"])^2)
+                ,"Total"=sum(colSums(x.out$V.Nal.stratum/sum(x.out$out[,"M"])^2)))) #remove stratum area expansion
+          
+          
+          print(c(Yeari,Tows))
+          # print(sum(x.out$out[,"M"]))
+          # print((x.out$Naa.hat.stratum))
+          # print(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"])))
+          # print(sum(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"]))))
+                
+          
+          if(do.age) { 
+            IAA.out<-rbind(IAA.out,c(Yeari,Tows,colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"]))
+                                   ,"Total"=sum(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"])))))
+          #print(IAA.out)
+          } 
+          #Do we need a separate variance calc for the number at age?
+          
+          #Warnings next - first make sure the warnings are consistent through time
+          #Get the min and max observed size for all years
+          minL=min(minL,min(x.out$warnings$LengthRange),na.rm=T)
+          maxL=max(maxL,max(x.out$warnings$LengthRange),na.rm=T)
+          #track if any user selected strata have no observed catch for this species in any of the selected years
+          unUsedStrata=unUsedStrata[unUsedStrata%in%x.out$warnings$UnusedStrata]
+          #Also track unsampled strata in each year
+          if(!is.null(x.out$warnings$UnsampledStrata)) {
+            UnSampledStrata=append(UnSampledStrata,c(Yeari,x.out$warnings$UnsampledStrata))
           }
-        })
+           #Keep the expansion factor for unsampled strata on hand for each year
+          Expand=c(Expand,x.out$expand)
+        }
+        
+        #If the user wishes to expand over unsampled strata
+        if(Expansion){
+          expnd=Expand
+        } else expnd=rep(1.,nrow(Expand))
+        
+        Ind.out=as.data.frame(Ind.out)
+        names(Ind.out)=c("Year","Tows","Num","Wt","VarNum","VarWt")
+  
+        IAL.out=as.data.frame(IAL.out)
+        IAL.out[,ncol(IAL.out)]=IAL.out[,ncol(IAL.out)]*expnd #Expand the total to cover unsampled strata (if desired)
+        names(IAL.out)=c('Year','nTows',paste(len.range,"cm",sep=""),'Total')
+  
+        VIAL.out=as.data.frame(VIAL.out)
+        VIAL.out[,ncol(VIAL.out)]=VIAL.out[,ncol(VIAL.out)]*expnd^2 #Expand the total to cover unsampled strata (if desired)
+        names(VIAL.out)=c('Year','nTows',paste(len.range,"cm",sep=""),'Total')
+  
+        IAA.out=as.data.frame(IAA.out)
+        if(do.age) {
+        IAA.out[,ncol(IAA.out)]=IAA.out[,ncol(IAA.out)]*expnd #Expand the total to cover unsampled strata (if desired)
+        names(IAA.out)=c('Year','nTows',paste0("Age",age.range),'Total')
+        } else IAA.out="No ages"
+        
+  
+        #try saving the data in a reactiveValues for later download 
+        All.out<<-list( #Note that the assignment is done with " <<- " !!
+          "Index"=Ind.out
+          ,"NatLength"=IAL.out
+          ,"VarNatLength"=VIAL.out
+          ,"NatAge"=IAA.out
+        )
+        
+        #plot the indices for something to look at after a successful run
+        if(!is.na(x.out[[2]][1,1])) { #Check to make sure x.out was loaded before attempting to plot
+          output$myPlots <- renderPlot({
+            
+            #plot1 <- ggplot(as.data.frame(x.out$out), aes(x=stratum, y= EXPCATCHNUM)) +
+            #    geom_bar(stat="identity") +
+            # theme_bw()
+            if(nrow(Ind.out)>1){ #make sure there is more than one year to plot
+              #calculate a confidence interval to add to plot - just using the normal approximation here
+              ci=data.frame(Ind.out,"lci"=Ind.out$Wt-1.96*(sqrt(Ind.out$VarWt))  #/Ind.out$Tows
+                            ,"uci"=Ind.out$Wt+1.96*(sqrt(Ind.out$VarWt) ))  #/Ind.out$Tows
+              
+              #alternative is the Buckland (1993) method (these are waaay bigger)
+              #logvar=log(1+Ind.out$VarWt/(Ind.out$Wt)^2)
+              #ci=data.frame(Ind.out,"lci"=Ind.out$Wt*logvar,"uci"=Ind.out$Wt/logvar )
+              
+              print(ci)
+              
+              plot1<-ggplot(Ind.out, aes(x=Year, y=Wt)) +
+                   geom_line() +
+                   geom_ribbon(data=ci,aes(ymin=lci,ymax=uci),alpha=0.3) +
+                   theme_bw()
+    
+              print(plot1)
+            }
+          })
+        } else print("Invalid Stratum Selection: no observations of selected species in strata")
       } else print("Invalid Stratum Selection: no observations of selected species in strata")
-    } else print("Invalid Stratum Selection: no observations of selected species in strata")
-    
-    #show warnings in notification form and remove existing old notifications
-    if(minL<min(len.range)) {showNotification(paste0("Minimum observed size (", minL
-        ,") is less than the selected minimum size (", min(len.range),")" ),id="minLid",duration=NULL,type="warning")
-    } else removeNotification(id="minLid")
-    if(maxL>max(len.range)) {showNotification(paste0("Maximum observed size (", maxL
-        ,") is greater than the selected maximum size (", max(len.range),")" ),id="maxLid",duration=NULL,type="warning")
-    } else removeNotification(id="maxLid")
-    if(length(unUsedStrata)>0) {showNotification(paste0(" The following strata had no observed catch during the selected years: "
-        ,unUsedStrata),duration=NULL,id="unusedid",type="warning")
-    } else removeNotification(id="unusedid")
-    if(length(UnSampledStrata)>0) {
-      #CheckTows=paste0(" The following strata had no tows during: "
-       #                ,paste(paste(UnSampledStrata,collapse=" , ")," \n ",collapse=""))
-      lineBrk=" <br></br> "
-      UnSampledStrata2=ifelse(UnSampledStrata%in%yrs, paste0(lineBrk,UnSampledStrata,":  "),UnSampledStrata )
-      #print(str(UnSampledStrata))
-      #print(UnSampledStrata)
-      # CheckTows=apply(UnSampledStrata,1,FUN=function(x) paste(x,collapse=" , "))
-      # CheckTows=paste(CheckTows,"\n",collapse="")
-       CheckTows=shiny::HTML(paste0(" The following strata had no tows: ",paste0(UnSampledStrata2,collapse = " ")))
-       print(CheckTows)
-       showNotification2(CheckTows,duration=NULL,id="unTowedid",type="warning")
-    } else removeNotification(id="unTowedid")   
-    
+      
+      #show warnings in notification form and remove existing old notifications
+      if(minL<min(len.range)) {showNotification(paste0("Minimum observed size (", minL
+          ,") is less than the selected minimum size (", min(len.range),")" ),id="minLid",duration=NULL,type="warning")
+      } else removeNotification(id="minLid")
+      if(maxL>max(len.range)) {showNotification(paste0("Maximum observed size (", maxL
+          ,") is greater than the selected maximum size (", max(len.range),")" ),id="maxLid",duration=NULL,type="warning")
+      } else removeNotification(id="maxLid")
+      if(length(unUsedStrata)>0) {showNotification(paste0(" The following strata had no observed catch during the selected years: "
+          ,unUsedStrata),duration=NULL,id="unusedid",type="warning")
+      } else removeNotification(id="unusedid")
+      if(length(UnSampledStrata)>0) {
+        #CheckTows=paste0(" The following strata had no tows during: "
+         #                ,paste(paste(UnSampledStrata,collapse=" , ")," \n ",collapse=""))
+        lineBrk=" <br></br> "
+        UnSampledStrata2=ifelse(UnSampledStrata%in%yrs, paste0(lineBrk,UnSampledStrata,":  "),UnSampledStrata )
+        #print(str(UnSampledStrata))
+        #print(UnSampledStrata)
+        # CheckTows=apply(UnSampledStrata,1,FUN=function(x) paste(x,collapse=" , "))
+        # CheckTows=paste(CheckTows,"\n",collapse="")
+         CheckTows=shiny::HTML(paste0(" The following strata had no tows: ",paste0(UnSampledStrata2,collapse = " ")))
+         print(CheckTows)
+         showNotification2(CheckTows,duration=NULL,id="unTowedid",type="warning")
+      } else removeNotification(id="unTowedid")   
     
     }) #end observe "run" event
   
@@ -724,31 +730,6 @@ server = function(input, output, session){
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   #                                       Output handling section 
   #______________________________________________________________________________________________________
-  #Get the saved output objects
-  getOutput=reactive({
-    # #This is a way to get the download handler to see these values... (from an observe event above)
-    # indTrack=rep(F,4) #track which indices were made
-    # if(file.exists("Ind.out")) {Ind.out=dget("Ind.out"); indTrack[1]=T}
-    # if(file.exists("IAL.out")) {IAL.out=dget("IAL.out"); indTrack[2]=T}
-    # if(file.exists("VIAL.out")) {VIAL.out=dget("VIAL.out"); indTrack[3]=T}
-    # if(file.exists("IAA.out")) {IAA.out=dget("IAA.out"); indTrack[4]=T}
-    # outObjList=c("Ind.out","IAL.out","VIAL.out","IAA.out")
-    # if(any(outObjList%in%objects())) {
-    #   #complicated, but this gets the objects that the user has requested, and not the ones they haven't!
-    #   All.out=list(
-    #   "Index"=ifelse(is.null(attr(try(get(outObjList[indTrack[1]]),silent=T),"condition")),get(outObjList[indTrack[1]]),NA)
-    #   ,"NatLength"=ifelse(is.null(attr(try(get(outObjList[indTrack[2]]),silent=T),"condition")),get(outObjList[indTrack[2]]),NA)
-    #   ,"VarNatLength"==ifelse(is.null(attr(try(get(outObjList[indTrack[3]]),silent=T),"condition")),get(outObjList[indTrack[3]]),NA)
-    #   ,"NatAge"=ifelse(is.null(attr(try(get(outObjList[indTrack[4]]),silent=T),"condition")),get(outObjList[indTrack[4]]),NA)
-    #   )
-    # }
-    All.out=list(
-      "Index"=dget("Ind.out")
-      ,"NatLength"=dget("IAL.out")
-      ,"VarNatLength"=dget("VIAL.out")
-      ,"NatAge"=dget("IAA.out")
-    )
-  })
   
   getInputs=reactive({
     if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
@@ -757,9 +738,10 @@ server = function(input, output, session){
   output$downloadData <- downloadHandler(
     filename = function() { paste(input$species, input$season, min(input$len1[1]), max(input$len1[2]), '.csv', sep='_') },
     content = function(file) {
-
-      All.out=getOutput()
-    
+      
+      #All.out is bound to the reactive variables and assigned from within the observe event environment with "<<-"
+      #so it should be visible here.
+      
       #Huge pain in the ass to get this to print the names of the list objects... 
       write.list=function(x) {
         write.table(x,file,append=T,sep=",",row.names = F,col.names = F)
@@ -781,8 +763,8 @@ server = function(input, output, session){
   output$downloadDataR <- downloadHandler(
     filename = function() { paste(input$species, input$season, min(input$len1[1]), max(input$len1[2]), '.RData', sep='_') },
     content = function(file) {
-      
-      All.out=getOutput()
+      #All.out should now be defined when the run button is hit. 
+      #All.out=getOutput()
       user.Inputs=getInputs()
       
       SAGAr=list("Indices"=All.out,"UserInputs"=user.Inputs)
