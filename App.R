@@ -382,13 +382,13 @@ server = function(input, output, session){
     #reactiveValuesToList(input[which(substr(names(input),1,4)=="map_")])
     reactiveValuesToList(input)[c("species","years","season","mychooser")] 
     #,input$mychooser$right,input$years,input$season,input$S,input$H,input$G))
-    })
+  })
 
    #This makes a variable that is assigned inside the observe event environment, but visible outside it (use <<- to assign in
    # the observe event function).   
-   All.out<-list()
-   makeReactiveBinding("All.out")
-  
+  All.out<-list()
+  makeReactiveBinding("All.out")
+  User.Inputs=list()  #don't need to make reactive (I think) because this is made of reactive values 
   
   observeEvent(input$runBtn,{ #if run button is pushed:
     
@@ -410,8 +410,8 @@ server = function(input, output, session){
     strata.in <- input$mychooser$right
     len.range <- c(input$len1[1]:input$len1[2])
     do.age=T
-    print(input$age)
-    if(!is.null(input$age[1]) & !is.null(input$age[2])) {
+    #print(input$age1)
+    if(!is.null(input$age1[1]) & !is.null(input$age1[2])) {
       age.range <- c(input$age1[1]:input$age1[2])
     } else {
       do.age=F
@@ -467,9 +467,9 @@ server = function(input, output, session){
     #if(input$minLength<len.view$MINL | input$maxLength>len.view$MAXL) print(c("New range: ",len.range))
     #print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season ])
     #print(survey.cruises$CRUISE6[survey.cruises$YEAR %in% seq(min(input$years),max(input$years))])
-    userInputs=list("species"=input$species,"strata"=strata.in,"years"=seq(min(input$years),max(input$years))
+    userInputs<<-list("species"=input$species,"strata"=strata.in,"years"=seq(min(input$years),max(input$years))
                     ,"season"=input$season,"len.range"=len.range,"age.range"=age.range)
-    dput(userInputs,"user.Inputs") #other environments can see this after reading 
+    #dput(userInputs,"user.Inputs") #other environments can see this after reading 
     
     if(length(cruise6)>0){
       #Destroy the saved memory objects that are outputs
