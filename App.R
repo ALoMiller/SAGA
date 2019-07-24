@@ -471,12 +471,12 @@ server = function(input, output, session){
     userInputs<<-list("species"=input$species,"strata"=strata.in,"years"=seq(min(input$years),max(input$years))
       ,"season"=input$season,"len.range"=len.range,"age.range"=age.range)
     #dput(userInputs,"user.Inputs") #other environments can see this after reading 
-    withProgress(message='Applying inputs',{
-      for (i in 1:10) {
-        incProgress(1/10)
-        Sys.sleep(0.25)
-      }
-    })
+    # withProgress(message='Applying inputs',{
+    #   for (i in 1:15) {
+    #     incProgress(1/15)
+    #     sum(runif(1000000000,0,1))
+    #   }
+    # })
     if(length(cruise6)>0){
       #Destroy the saved memory objects that are outputs
       Ind.out=c();IAL.out=c();VIAL.out=c();IAA.out=c();maxL=max(len.range);minL=min(len.range);unUsedStrata=strata.in;
@@ -537,7 +537,7 @@ server = function(input, output, session){
         withProgress(message=paste0('Calculating indices for ',yrs[i]),{
           for (i in 1:10) {
             incProgress(1/10)
-            Sys.sleep(0.25)
+           
           }
         })
         print(c(Yeari,Tows))
@@ -836,7 +836,7 @@ server = function(input, output, session){
     str2 <- paste("Years:",
       input$years[1], "to", input$years[2])
     str3 <- paste("Season:", input$season)
-    str4 <- paste("Strata:", paste(input$mychooser$right, collapse=' '))
+    str4 <- paste("Strata:", paste(input$mychooser$right, collapse=', '))
     HTML(paste(str1, str2, str3, str4, sep = '<br/>'))
     
   })
