@@ -308,30 +308,33 @@ server = function(input, output, session){
     
     # Depending on input$calib_type, we'll generate a different
     # UI component and send it to the client.
-    switch(input$calib_type,
+    if (species$BIGELOWCALTYPE[species$COMNAME==input$species] == 'CONSTANT'){
+      switch(input$calib_type,
       "convert to Albatross" = selectInput("calib_meth", "Select calibration method:",
-        choices = c("constant" = "alb.const.rho",
-          "length" = "alb.len.rho"),
-        selected = "alb.const.rho"
+        choices = c("constant" = "alb.const.rho")
       ),
-      "convert to Bigelow" = selectInput("calib_meth", "Select calibration method:",
-        choices = c("constant" = "big.const.rho",
-          "length" = "big.len.rho"),
-        selected = "big.const.rho"
+        "convert to Bigelow" = selectInput("calib_meth", "Select calibration method:",
+          choices = c("constant" = "big.const.rho")
+        )
       )
-    )
+    }
+    if (species$BIGELOWCALTYPE[species$COMNAME==input$species] == 'LENGTH'){
+      switch(input$calib_type,
+        "convert to Albatross" = selectInput("calib_meth", "Select calibration method:",
+          choices = c("constant" = "alb.const.rho",
+            "length" = "alb.len.rho"),
+          selected = "alb.const.rho"
+        ),
+        "convert to Bigelow" = selectInput("calib_meth", "Select calibration method:",
+          choices = c("constant" = "big.const.rho",
+            "length" = "big.len.rho"),
+          selected = "big.const.rho"
+        )
+      )
+    }
+    
   })
   
-#   output$ui.big.calib.stock <- renderUI({  #generates dynamic UI for Bigelow calibration widget
-#     if (is.null(input$calib_meth))
-#       return()
-#     # If input$calib_meth is set for length, we'll generate a stock selection dropdown
-#   switch(input$calib_meth,
-#     "length" = selectInput("calib_stock", "Choose stock:",
-#       unique(big.len.calib$STOCK[big.len.calib$SVSPP==input$spp]))
-#   )
-# })
-
   output$ui.gdv.calib <- renderUI({  #generates dynamic UI for Bigelow calibration widget
     if (is.null(input$gdv_calib))
       return()
@@ -388,43 +391,51 @@ server = function(input, output, session){
     })
 
  
-    
   observeEvent(input$runBtn,{ #if run button is pushed:
+    
+    print("Running")
     
     if(length(input$mychooser$right)==0) {
       showNotification("PLEASE CHOOSE AT LEAST ONE STRATUM!!"
-            ,id="strataChosen",duration=NULL,type="error")
+        ,id="strataChosen",duration=NULL,type="error")
     } else removeNotification(id="strataChosen")    
     
     req(input$mychooser$right)
-
+    
     yrs=seq(min(input$years),max(input$years))
     #grab cruise6 from the rows with matching season and year
     cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season & 
-                                        survey.cruises$YEAR %in% yrs]
+        survey.cruises$YEAR %in% yrs]
     spp <- species$SVSPP[species$COMNAME == input$species] #species name as well
     
     strata.in <- input$mychooser$right
     len.range <- c(input$len1[1]:input$len1[2])
-    age.range <- c(input$age1[1]:input$age1[2])
+    do.age=T
+    #print(input$age1)
+    if(!is.null(input$age1[1]) & !is.null(input$age1[2])) {
+      age.range <- c(input$age1[1]:input$age1[2])
+    } else {
+      do.age=F
+      age.range <- NULL
+    }
     do.Albatross <- input$calib_type=="convert to Albatross"
     do.Bigelow <- input$calib_type=="convert to Bigelow"
     if(is.null(input$calib_meth)){
       do.BigLen <- FALSE
       do.AlbLen <- FALSE
     }
-      else{
-        do.BigLen <- input$calib_meth=="big.len.rho"
-        do.AlbLen <- input$calib_meth=="alb.len.rho"
-      }
+    else{
+      do.BigLen <- input$calib_meth=="big.len.rho"
+      do.AlbLen <- input$calib_meth=="alb.len.rho"
+    }
     
     if(input$gdv_calib=="specify values"){
-    gcf.n<- input$gear.num
-    dcf.n<- input$door.num
-    vcf.n<- input$vessel.num
-    gcf.w<- input$gear.wt
-    dcf.w<- input$door.wt
-    vcf.w<- input$vessel.wt
+      gcf.n<- input$gear.num
+      dcf.n<- input$door.num
+      vcf.n<- input$vessel.num
+      gcf.w<- input$gear.wt
+      dcf.w<- input$door.wt
+      vcf.w<- input$vessel.wt
     } else {
       gcf.n<- 1
       dcf.n<- 1
@@ -434,12 +445,11 @@ server = function(input, output, session){
       vcf.w<- 1
       
     }
-
+    
     #Check user inputs
     S<-input$S
     H<-input$H
     G<-input$G
-    print(input$chooser)
     
     #Expand to cover unsampled strata? For now this is automatic, but could be built into an reactive input
     Expansion=T
@@ -447,9 +457,9 @@ server = function(input, output, session){
     #Check user inputs and make a table of them for later 
     #Check length range given user inputs (there is no reason to generate rows of zeros!):
     q.len <- paste("select MIN(length) as minL, MAX(length) as maxL  from svdbs.union_fscs_svlen " ,
-                   " where cruise6 in ('", paste(cruise6, collapse="','"), "')"
-                   , " and STRATUM IN('", paste(ifelse(nchar(strata.in)<5,paste0('0', strata.in),strata.in), collapse = "','")
-                   , "')"," and svspp = ", spp, ";", sep = '')
+      " where cruise6 in ('", paste(cruise6, collapse="','"), "')"
+      , " and STRATUM IN('", paste(ifelse(nchar(strata.in)<5,paste0('0', strata.in),strata.in), collapse = "','")
+      , "')"," and svspp = ", spp, ";", sep = '')
     len.view <- as.data.frame(sqlQuery(sole,q.len))
     #adjust length range and report in console
     #if(min(len.range)<len.view$MINL | max(len.range)>len.view$MAXL) print("Adjusting user requested lengths to range of observed values")
@@ -458,9 +468,9 @@ server = function(input, output, session){
     #if(input$minLength<len.view$MINL | input$maxLength>len.view$MAXL) print(c("New range: ",len.range))
     #print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season ])
     #print(survey.cruises$CRUISE6[survey.cruises$YEAR %in% seq(min(input$years),max(input$years))])
-    userInputs=list("species"=input$species,"strata"=strata.in,"years"=seq(min(input$years),max(input$years))
-                    ,"season"=input$season,"len.range"=len.range,"age.range"=age.range)
-    dput(userInputs,"user.Inputs") #other environments can see this after reading 
+    userInputs<<-list("species"=input$species,"strata"=strata.in,"years"=seq(min(input$years),max(input$years))
+      ,"season"=input$season,"len.range"=len.range,"age.range"=age.range)
+    #dput(userInputs,"user.Inputs") #other environments can see this after reading 
     withProgress(message='Applying inputs',{
       for (i in 1:10) {
         incProgress(1/10)
@@ -472,30 +482,31 @@ server = function(input, output, session){
       Ind.out=c();IAL.out=c();VIAL.out=c();IAA.out=c();maxL=max(len.range);minL=min(len.range);unUsedStrata=strata.in;
       UnSampledStrata=list();Expand=c();
       for(i in 1:length(cruise6)) {
-       x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
-                                                  survey = cruise6[i], 
-                                                  oc = sole, 
-                                                  strata = strata.in,
-                                                  lengths = len.range,
-                                                  age = age.range,
-                                                  do.length = TRUE, 
-                                                  do.age = T,
-                                                  gcf.n = gcf.n, 
-                                                  dcf.n = dcf.n, 
-                                                  vcf.n = vcf.n, 
-                                                  gcf.w = gcf.w, 
-                                                  dcf.w = dcf.w, 
-                                                  vcf.w = vcf.w, 
-                                                  do.Albatross = do.Albatross,
-                                                  do.Bigelow = do.Bigelow,
-                                                  tow_swept_area = 0.01,
-                                                  species=species, 
-                                                  fall.cruises=fall.cruises,
-                                                  spring.cruises=spring.cruises,
-                                                  do.BigLen=do.BigLen,
-                                                  do.AlbLen=do.AlbLen,
-                                                  big.len.calib=big.len.calib,
-                                                  S=S,H=H,G=G)
+        x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
+          survey = cruise6[i], 
+          oc = sole, 
+          strata = strata.in,
+          lengths = len.range,
+          age = age.range,
+          do.length = TRUE, 
+          do.age = do.age,
+          gcf.n = gcf.n, 
+          dcf.n = dcf.n, 
+          vcf.n = vcf.n, 
+          gcf.w = gcf.w, 
+          dcf.w = dcf.w, 
+          vcf.w = vcf.w, 
+          do.Albatross = do.Albatross,
+          do.Bigelow = do.Bigelow,
+          tow_swept_area = 0.01,
+          species=species, 
+          fall.cruises=fall.cruises,
+          spring.cruises=spring.cruises,
+          do.BigLen=do.BigLen,
+          do.AlbLen=do.AlbLen,
+          big.len.calib=big.len.calib,
+          S=S,H=H,G=G
+        )
         
         #Take the important parts from x.out to generate an index over time.
         Yeari=as.integer(substr(paste(cruise6[i]),1,4))
@@ -505,23 +516,23 @@ server = function(input, output, session){
         #grab the Num,Wt and generate stratified means 
         goodRows=(x.out$out[,"m"]>0)
         SMns=colSums(x.out$out[,c(4:5)][goodRows,]*
-                       x.out$out[,"M"][goodRows],na.rm=T)/sum(x.out$out[,"M"][goodRows])
+            x.out$out[,"M"][goodRows],na.rm=T)/sum(x.out$out[,"M"][goodRows])
         #Now get the variances
         goodRows=(x.out$out[,"m"]>1)
         Svars=colSums(x.out$out[,c(6:7)][goodRows,]*
-                        (x.out$out[,"M"][goodRows]^2),na.rm=T)/sum(x.out$out[,"M"][goodRows])^2
+            (x.out$out[,"M"][goodRows]^2),na.rm=T)/sum(x.out$out[,"M"][goodRows])^2
         Ind.out<-rbind(Ind.out,c(Yeari,Tows
-                    ,SMns,Svars)) 
+          ,SMns,Svars)) 
         #The indices at length require similar manipulation
         #IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum/x.out$out[,"M"])
         #    ,"Total"=sum(colSums(x.out$Nal.hat.stratum/x.out$out[,"M"]))))  #Add a "Total" which is the index over the sizes of interest
         goodRows=(x.out$out[,"m"]>0)
         IAL.out<-rbind(IAL.out,c(Yeari,Tows,colSums(x.out$Nal.hat.stratum/sum(x.out$out[,"M"]))
-                                 ,"Total"=sum(colSums(x.out$Nal.hat.stratum/sum(x.out$out[,"M"])))))  #Add a "Total" which is the index over the sizes of interest
+          ,"Total"=sum(colSums(x.out$Nal.hat.stratum/sum(x.out$out[,"M"])))))  #Add a "Total" which is the index over the sizes of interest
         
         #divide by the stratum area to get unexpanded numbers at length
         VIAL.out<-rbind(VIAL.out,c(Yeari,Tows,colSums(x.out$V.Nal.stratum/sum(x.out$out[,"M"])^2)
-              ,"Total"=sum(colSums(x.out$V.Nal.stratum/sum(x.out$out[,"M"])^2)))) #remove stratum area expansion
+          ,"Total"=sum(colSums(x.out$V.Nal.stratum/sum(x.out$out[,"M"])^2)))) #remove stratum area expansion
         
         withProgress(message=paste0('Calculating indices for ',yrs[i]),{
           for (i in 1:10) {
@@ -530,15 +541,17 @@ server = function(input, output, session){
           }
         })
         print(c(Yeari,Tows))
-        print(sum(x.out$out[,"M"]))
-        print((x.out$Naa.hat.stratum))
-        print(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"])))
-        print(sum(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"]))))
-              
+        # print(sum(x.out$out[,"M"]))
+        # print((x.out$Naa.hat.stratum))
+        # print(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"])))
+        # print(sum(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"]))))
         
-        IAA.out<-rbind(IAA.out,c(Yeari,Tows,colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"]))
-                                 ,"Total"=sum(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"])))))
-        print(IAA.out)
+        
+        if(do.age) { 
+          IAA.out<-rbind(IAA.out,c(Yeari,Tows,colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"]))
+            ,"Total"=sum(colSums(x.out$Naa.hat.stratum[,2:ncol(x.out$Naa.hat.stratum)]/sum(x.out$out[,"M"])))))
+          #print(IAA.out)
+        } 
         #Do we need a separate variance calc for the number at age?
         
         #Warnings next - first make sure the warnings are consistent through time
@@ -551,7 +564,7 @@ server = function(input, output, session){
         if(!is.null(x.out$warnings$UnsampledStrata)) {
           UnSampledStrata=append(UnSampledStrata,c(Yeari,x.out$warnings$UnsampledStrata))
         }
-         #Keep the expansion factor for unsampled strata on hand for each year
+        #Keep the expansion factor for unsampled strata on hand for each year
         Expand=c(Expand,x.out$expand)
       }
       
@@ -562,44 +575,41 @@ server = function(input, output, session){
       
       Ind.out=as.data.frame(Ind.out)
       names(Ind.out)=c("Year","Tows","Num","Wt","VarNum","VarWt")
-
+      
       IAL.out=as.data.frame(IAL.out)
       IAL.out[,ncol(IAL.out)]=IAL.out[,ncol(IAL.out)]*expnd #Expand the total to cover unsampled strata (if desired)
       names(IAL.out)=c('Year','nTows',paste(len.range,"cm",sep=""),'Total')
-
+      
       VIAL.out=as.data.frame(VIAL.out)
       VIAL.out[,ncol(VIAL.out)]=VIAL.out[,ncol(VIAL.out)]*expnd^2 #Expand the total to cover unsampled strata (if desired)
       names(VIAL.out)=c('Year','nTows',paste(len.range,"cm",sep=""),'Total')
-
+      
       IAA.out=as.data.frame(IAA.out)
-      IAA.out[,ncol(IAA.out)]=IAA.out[,ncol(IAA.out)]*expnd #Expand the total to cover unsampled strata (if desired)
-      names(IAA.out)=c('Year','nTows',paste0("Age",age.range),'Total')
-
+      if(do.age) {
+        IAA.out[,ncol(IAA.out)]=IAA.out[,ncol(IAA.out)]*expnd #Expand the total to cover unsampled strata (if desired)
+        names(IAA.out)=c('Year','nTows',paste0("Age",age.range),'Total')
+      } else IAA.out="No ages"
       
-
       
-      #This should make this visible to other environments for later download 
-      dput(Ind.out,"Ind.out")      
-      dput(IAL.out,"IAL.out")       
-      dput(VIAL.out,"VIAL.out")   
-      dput(IAA.out,"IAA.out") 
-      #print(IAL.out)
-      #print(VIAL.out)
-      #print(IAA.out)
-      #print(unUsedStrata)
-      #print(c(minL,maxL))
+      #try saving the data in a reactiveValues for later download 
+      All.out<<-list( #Note that the assignment is done with " <<- " !!
+        "Index"=Ind.out
+        ,"NatLength"=IAL.out
+        ,"VarNatLength"=VIAL.out
+        ,"NatAge"=IAA.out
+      )
       
       #plot the indices for something to look at after a successful run
       if(!is.na(x.out[[2]][1,1])) { #Check to make sure x.out was loaded before attempting to plot
         output$myPlots <- renderPlot({
-         
+          
           #plot1 <- ggplot(as.data.frame(x.out$out), aes(x=stratum, y= EXPCATCHNUM)) +
           #    geom_bar(stat="identity") +
           # theme_bw()
           if(nrow(Ind.out)>1){ #make sure there is more than one year to plot
             #calculate a confidence interval to add to plot - just using the normal approximation here
             ci=data.frame(Ind.out,"lci"=Ind.out$Wt-1.96*(sqrt(Ind.out$VarWt))  #/Ind.out$Tows
-                          ,"uci"=Ind.out$Wt+1.96*(sqrt(Ind.out$VarWt) ))  #/Ind.out$Tows
+              ,"uci"=Ind.out$Wt+1.96*(sqrt(Ind.out$VarWt) ))  #/Ind.out$Tows
             
             #alternative is the Buckland (1993) method (these are waaay bigger)
             #logvar=log(1+Ind.out$VarWt/(Ind.out$Wt)^2)
@@ -608,10 +618,10 @@ server = function(input, output, session){
             print(ci)
             
             plot1<-ggplot(Ind.out, aes(x=Year, y=Wt)) +
-                 geom_line() +
-                 geom_ribbon(data=ci,aes(ymin=lci,ymax=uci),alpha=0.3) +
-                 theme_bw()
-  
+              geom_line() +
+              geom_ribbon(data=ci,aes(ymin=lci,ymax=uci),alpha=0.3) +
+              theme_bw()
+            
             print(plot1)
           }
         })
@@ -620,30 +630,29 @@ server = function(input, output, session){
     
     #show warnings in notification form and remove existing old notifications
     if(minL<min(len.range)) {showNotification(paste0("Minimum observed size (", minL
-        ,") is less than the selected minimum size (", min(len.range),")" ),id="minLid",duration=NULL,type="warning")
+      ,") is less than the selected minimum size (", min(len.range),")" ),id="minLid",duration=NULL,type="warning")
     } else removeNotification(id="minLid")
     if(maxL>max(len.range)) {showNotification(paste0("Maximum observed size (", maxL
-        ,") is greater than the selected maximum size (", max(len.range),")" ),id="maxLid",duration=NULL,type="warning")
+      ,") is greater than the selected maximum size (", max(len.range),")" ),id="maxLid",duration=NULL,type="warning")
     } else removeNotification(id="maxLid")
     if(length(unUsedStrata)>0) {showNotification(paste0(" The following strata had no observed catch during the selected years: "
-        ,unUsedStrata),duration=NULL,id="unusedid",type="warning")
+      ,unUsedStrata),duration=NULL,id="unusedid",type="warning")
     } else removeNotification(id="unusedid")
     if(length(UnSampledStrata)>0) {
       #CheckTows=paste0(" The following strata had no tows during: "
-       #                ,paste(paste(UnSampledStrata,collapse=" , ")," \n ",collapse=""))
+      #                ,paste(paste(UnSampledStrata,collapse=" , ")," \n ",collapse=""))
       lineBrk=" <br></br> "
       UnSampledStrata2=ifelse(UnSampledStrata%in%yrs, paste0(lineBrk,UnSampledStrata,":  "),UnSampledStrata )
       #print(str(UnSampledStrata))
       #print(UnSampledStrata)
       # CheckTows=apply(UnSampledStrata,1,FUN=function(x) paste(x,collapse=" , "))
       # CheckTows=paste(CheckTows,"\n",collapse="")
-       CheckTows=shiny::HTML(paste0(" The following strata had no tows: ",paste0(UnSampledStrata2,collapse = " ")))
-       print(CheckTows)
-       showNotification2(CheckTows,duration=NULL,id="unTowedid",type="warning")
+      CheckTows=shiny::HTML(paste0(" The following strata had no tows: ",paste0(UnSampledStrata2,collapse = " ")))
+      print(CheckTows)
+      showNotification2(CheckTows,duration=NULL,id="unTowedid",type="warning")
     } else removeNotification(id="unTowedid")   
     
-    
-    }) #end observe "run" event
+  }) #end observe "run" event
   
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   #                                       MAP section 
@@ -822,9 +831,6 @@ server = function(input, output, session){
     }
   )
   
-  output$user_inputs <- renderText({ 
-    paste("SPECIES:", input$species)
-  })
    output$text <- renderUI({
     str1 <- paste("Species:", input$species)
     str2 <- paste("Years:",
