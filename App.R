@@ -203,7 +203,9 @@ ui <-
                    br(),
                    br(),
                    h5(strong("User Inputs")),
-                   verbatimTextOutput( outputId = "text")
+                   #verbatimTextOutput( outputId = "text")
+                   htmlOutput("text")
+              
             )  
             
           )
@@ -437,6 +439,7 @@ server = function(input, output, session){
     S<-input$S
     H<-input$H
     G<-input$G
+    print(input$chooser)
     
     #Expand to cover unsampled strata? For now this is automatic, but could be built into an reactive input
     Expansion=T
@@ -817,8 +820,20 @@ server = function(input, output, session){
        )
       
     }
-  )  
+  )
   
+  output$user_inputs <- renderText({ 
+    paste("SPECIES:", input$species)
+  })
+   output$text <- renderUI({
+    str1 <- paste("Species:", input$species)
+    str2 <- paste("Years:",
+      input$years[1], "to", input$years[2])
+    str3 <- paste("Season:", input$season)
+    str4 <- paste("Strata:", paste(input$mychooser$right, collapse=' '))
+    HTML(paste(str1, str2, str3, str4, sep = '<br/>'))
+    
+  })
   # htmlwidgets::saveWidget(output$myMap, "temp.html", selfcontained = FALSE)
   #  webshot::webshot("temp.html", file = paste0(Sys.time(),"_map.png"))   
 }
