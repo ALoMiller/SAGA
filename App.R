@@ -290,9 +290,9 @@ ui <-
             )
           )
         ) #end of help tab
-      )
-    )
-  )
+      ) #end of tabItems
+    ) #end of dashboardbody
+  ) #end of dashboard page
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 server = function(input, output, session){
@@ -719,7 +719,8 @@ server = function(input, output, session){
         # CheckTows=apply(UnSampledStrata,1,FUN=function(x) paste(x,collapse=" , "))
         # CheckTows=paste(CheckTows,"\n",collapse="")
          CheckTows=shiny::HTML(paste0(" The following strata had no tows: ",paste0(UnSampledStrata2,collapse = " ")))
-         print(CheckTows)
+         #print((CheckTows))
+         #shiny::tags$iframe(,scrolling="yes")
          showNotification2(CheckTows,duration=NULL,id="unTowedid",type="warning")
       } else removeNotification(id="unTowedid")   
     
