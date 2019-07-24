@@ -145,17 +145,17 @@ ui <-
                             fluidRow(
                               column(2,
                                      textInput("S", 
-                                               label = "Stat. <=", 
+                                               label = HTML("Sta. &le;"), 
                                                value = "1", 
                                                width = "70px")),
                               column(2,
                                      textInput("H", 
-                                               label = "Haul <=" , 
+                                               label = HTML("Haul &le;"), 
                                                value = "3", 
                                                width = "70px")),
                               column(2,
                                      textInput("G", 
-                                               label = "Gear <=", 
+                                               label = HTML("Gear &le;"), 
                                                value = "6", 
                                                width = "70px"))
                             ),
@@ -208,7 +208,9 @@ ui <-
                    br(),
                    br(),
                    h5(strong("User Inputs")),
-                   verbatimTextOutput( outputId = "text")
+                   #verbatimTextOutput( outputId = "text")
+                   htmlOutput("text")
+              
             )  
             
           )
@@ -388,30 +390,33 @@ server = function(input, output, session){
     
     # Depending on input$calib_type, we'll generate a different
     # UI component and send it to the client.
-    switch(input$calib_type,
+    if (species$BIGELOWCALTYPE[species$COMNAME==input$species] == 'CONSTANT'){
+      switch(input$calib_type,
       "convert to Albatross" = selectInput("calib_meth", "Select calibration method:",
-        choices = c("constant" = "alb.const.rho",
-          "length" = "alb.len.rho"),
-        selected = "alb.const.rho"
+        choices = c("constant" = "alb.const.rho")
       ),
-      "convert to Bigelow" = selectInput("calib_meth", "Select calibration method:",
-        choices = c("constant" = "big.const.rho",
-          "length" = "big.len.rho"),
-        selected = "big.const.rho"
+        "convert to Bigelow" = selectInput("calib_meth", "Select calibration method:",
+          choices = c("constant" = "big.const.rho")
+        )
       )
-    )
+    }
+    if (species$BIGELOWCALTYPE[species$COMNAME==input$species] == 'LENGTH'){
+      switch(input$calib_type,
+        "convert to Albatross" = selectInput("calib_meth", "Select calibration method:",
+          choices = c("constant" = "alb.const.rho",
+            "length" = "alb.len.rho"),
+          selected = "alb.const.rho"
+        ),
+        "convert to Bigelow" = selectInput("calib_meth", "Select calibration method:",
+          choices = c("constant" = "big.const.rho",
+            "length" = "big.len.rho"),
+          selected = "big.const.rho"
+        )
+      )
+    }
+    
   })
   
-#   output$ui.big.calib.stock <- renderUI({  #generates dynamic UI for Bigelow calibration widget
-#     if (is.null(input$calib_meth))
-#       return()
-#     # If input$calib_meth is set for length, we'll generate a stock selection dropdown
-#   switch(input$calib_meth,
-#     "length" = selectInput("calib_stock", "Choose stock:",
-#       unique(big.len.calib$STOCK[big.len.calib$SVSPP==input$spp]))
-#   )
-# })
-
   output$ui.gdv.calib <- renderUI({  #generates dynamic UI for Bigelow calibration widget
     if (is.null(input$gdv_calib))
       return()
@@ -456,9 +461,10 @@ server = function(input, output, session){
     )
   })
   
-  output$selection <- renderPrint(
+  output$selection <- renderPrint({
+    if(is.null(get_data())){return ()}
     input$mychooser$right
-  )
+  })
   # print list of input events
   output$text <- renderPrint({
     #reactiveValuesToList(input[which(substr(names(input),1,4)=="map_")])
@@ -466,27 +472,28 @@ server = function(input, output, session){
     #,input$mychooser$right,input$years,input$season,input$S,input$H,input$G))
   })
 
+
    #This makes a variable that is assigned inside the observe event environment, but visible outside it (use <<- to assign in
    # the observe event function).   
   All.out<-list()
   makeReactiveBinding("All.out")
   User.Inputs=list()  #don't need to make reactive (I think) because this is made of reactive values 
-  
+
   observeEvent(input$runBtn,{ #if run button is pushed:
     
     print("Running")
     
     if(length(input$mychooser$right)==0) {
       showNotification("PLEASE CHOOSE AT LEAST ONE STRATUM!!"
-            ,id="strataChosen",duration=NULL,type="error")
+        ,id="strataChosen",duration=NULL,type="error")
     } else removeNotification(id="strataChosen")    
     
     req(input$mychooser$right)
-
+    
     yrs=seq(min(input$years),max(input$years))
     #grab cruise6 from the rows with matching season and year
     cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season & 
-                                        survey.cruises$YEAR %in% yrs]
+        survey.cruises$YEAR %in% yrs]
     spp <- species$SVSPP[species$COMNAME == input$species] #species name as well
     
     strata.in <- input$mychooser$right
@@ -505,18 +512,18 @@ server = function(input, output, session){
       do.BigLen <- FALSE
       do.AlbLen <- FALSE
     }
-      else{
-        do.BigLen <- input$calib_meth=="big.len.rho"
-        do.AlbLen <- input$calib_meth=="alb.len.rho"
-      }
+    else{
+      do.BigLen <- input$calib_meth=="big.len.rho"
+      do.AlbLen <- input$calib_meth=="alb.len.rho"
+    }
     
     if(input$gdv_calib=="specify values"){
-    gcf.n<- input$gear.num
-    dcf.n<- input$door.num
-    vcf.n<- input$vessel.num
-    gcf.w<- input$gear.wt
-    dcf.w<- input$door.wt
-    vcf.w<- input$vessel.wt
+      gcf.n<- input$gear.num
+      dcf.n<- input$door.num
+      vcf.n<- input$vessel.num
+      gcf.w<- input$gear.wt
+      dcf.w<- input$door.wt
+      vcf.w<- input$vessel.wt
     } else {
       gcf.n<- 1
       dcf.n<- 1
@@ -526,7 +533,7 @@ server = function(input, output, session){
       vcf.w<- 1
       
     }
-
+    
     #Check user inputs
     S<-input$S
     H<-input$H
@@ -538,9 +545,9 @@ server = function(input, output, session){
     #Check user inputs and make a table of them for later 
     #Check length range given user inputs (there is no reason to generate rows of zeros!):
     q.len <- paste("select MIN(length) as minL, MAX(length) as maxL  from svdbs.union_fscs_svlen " ,
-                   " where cruise6 in ('", paste(cruise6, collapse="','"), "')"
-                   , " and STRATUM IN('", paste(ifelse(nchar(strata.in)<5,paste0('0', strata.in),strata.in), collapse = "','")
-                   , "')"," and svspp = ", spp, ";", sep = '')
+      " where cruise6 in ('", paste(cruise6, collapse="','"), "')"
+      , " and STRATUM IN('", paste(ifelse(nchar(strata.in)<5,paste0('0', strata.in),strata.in), collapse = "','")
+      , "')"," and svspp = ", spp, ";", sep = '')
     len.view <- as.data.frame(sqlQuery(sole,q.len))
     #adjust length range and report in console
     #if(min(len.range)<len.view$MINL | max(len.range)>len.view$MAXL) print("Adjusting user requested lengths to range of observed values")
@@ -551,13 +558,13 @@ server = function(input, output, session){
     #print(survey.cruises$CRUISE6[survey.cruises$YEAR %in% seq(min(input$years),max(input$years))])
     userInputs<<-list("species"=input$species,"strata"=strata.in,"years"=seq(min(input$years),max(input$years))
                     ,"season"=input$season,"len.range"=len.range,"age.range"=age.range)
-    #dput(userInputs,"user.Inputs") #other environments can see this after reading 
-    
+
     if(length(cruise6)>0){
       #Destroy the saved memory objects that are outputs
       Ind.out=c();IAL.out=c();VIAL.out=c();IAA.out=c();maxL=max(len.range);minL=min(len.range);unUsedStrata=strata.in;
       UnSampledStrata=list();Expand=c();
       for(i in 1:length(cruise6)) {
+
           x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
                                                   survey = cruise6[i], 
                                                   oc = sole, 
@@ -661,7 +668,14 @@ server = function(input, output, session){
         names(IAA.out)=c('Year','nTows',paste0("Age",age.range),'Total')
         } else IAA.out="No ages"
         
-  
+        withProgress(message=paste0('Calculating indices for ',yrs[i]),{
+          for (i in 1:10) {
+            incProgress(1/10)
+           
+          }
+        })
+      
+      
         #try saving the data in a reactiveValues for later download 
         All.out<<-list( #Note that the assignment is done with " <<- " !!
           "Index"=Ind.out
@@ -729,10 +743,11 @@ server = function(input, output, session){
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   #                                       MAP section 
   #______________________________________________________________________________________________________
-  get_data <- reactive({ #This is the get data button
+  observeEvent(input$runBtn,{ #if run button is pushed:
+    
+    get_data <- reactive({ #This is the get data button
     #Get user inputs
     strata <- input$mychooser$right
-    #strata <- input$mychooser
     strata <- ifelse(nchar(strata)<5,paste0('0', strata),strata) #fix for when this is run twice - it adds another 0 and causes many errors
     S<-input$S
     H<-input$H
@@ -749,17 +764,14 @@ server = function(input, output, session){
     sta.view <- sqlQuery(sole,q.sta, as.is = c(TRUE, rep(FALSE,22))) 
     sta.view$SEASON <- rep('SPRING',NROW(sta.view))
     sta.view$SEASON[sta.view$CRUISE6 %in% fall.cruises] <- 'FALL'
-    #print(table(sta.view$SEASON))  
-    #print(head(sta.view))
+    
     q.cat <- paste0("select id, cruise6, stratum, tow, station, svspp, catchsex, expcatchwt, expcatchnum from union_fscs_svcat ",
                     "where cruise6 IN (", paste(c(fall.cruises,spring.cruises), collapse = ','), ")",
                     " and STRATUM IN ('", paste(strata, collapse = "','"), "')",
                     "and svspp = ", species$SVSPP[species$COMNAME==input$species], 
                     " order by cruise6, stratum, tow, station", sep = '')
     cat.view <- sqlQuery(sole,q.cat, as.is = c(TRUE, rep(FALSE,8)))
-    #print(head(cat.view))
     catch.data <- merge(sta.view, cat.view, by = 'ID',  all.x = T, all.y=F)
-    #print(head(catch.data))
     catch.data$EXPCATCHNUM[is.na(catch.data$EXPCATCHNUM)] <- 0
     catch.data$EXPCATCHWT[is.na(catch.data$EXPCATCHWT)] <- 0
     bins.points <- c(10,25,50,75,100000000000)    # arbitrary decisions regarding catch/tow bins for right panel plot - "<5","5-10","10-50","50-100",">100"
@@ -775,6 +787,7 @@ server = function(input, output, session){
   })
   
   foundational.map <- reactive({
+    
     #builds the map from sql query and inputs
     catch.data <- get_data()
     # print(table(catch.data$SEASON)) 
@@ -791,6 +804,7 @@ server = function(input, output, session){
                                "Season: ",catch.data$SEASON[catch.data$EXPCATCHNUM>0]),
                  stroke = FALSE, fillOpacity = 0.4,
                  radius = catch.data$bubbleSize[catch.data$EXPCATCHNUM>0]*5000)  
+  
   })
   
   output$myMap = leaflet::renderLeaflet({
@@ -809,7 +823,7 @@ server = function(input, output, session){
                , zoom = input$map_zoom
       )
   }) # end of creating user.created.map()
-  
+  })
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   #                                       Output handling section 
   #______________________________________________________________________________________________________
@@ -877,8 +891,17 @@ server = function(input, output, session){
        )
       
     }
-  )  
+  )
   
+   output$text <- renderUI({
+    str1 <- paste("Species:", input$species)
+    str2 <- paste("Years:",
+      input$years[1], "to", input$years[2])
+    str3 <- paste("Season:", input$season)
+    str4 <- paste("Strata:", paste(input$mychooser$right, collapse=', '))
+    HTML(paste(str1, str2, str3, str4, sep = '<br/>'))
+    
+  })
   # htmlwidgets::saveWidget(output$myMap, "temp.html", selfcontained = FALSE)
   #  webshot::webshot("temp.html", file = paste0(Sys.time(),"_map.png"))   
 }
