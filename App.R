@@ -609,11 +609,11 @@ server = function(input, output, session){
                                                   big.len.calib=big.len.calib,
                                                   S=S,H=H,G=G
                                                   )
-          #Progress bar
+          # #Progress bar
           withProgress(message=paste0('Calculating indices for ',yrs[i]),{
-            for (i in 1:10) {
+            for (j in 1:10) {
               incProgress(1/10)
-              
+
             }
           })
           
@@ -624,12 +624,18 @@ server = function(input, output, session){
           #Generate products for later download and plotting:
           #grab the Num,Wt and generate stratified means 
           goodRows=(x.out$out[,"m"]>0)
-          SMns=colSums(x.out$out[,c(4:5)][goodRows,]*
-                         x.out$out[,"M"][goodRows],na.rm=T)/sum(x.out$out[,"M"][goodRows])
+          #in case there is only one strata...
+          if(length(goodRows)==1) {SMns=(x.out$out[goodRows,c(4:5)]*
+                                                 x.out$out[goodRows,"M"])/sum(x.out$out[goodRows,"M"])
+          } else SMns=colSums(x.out$out[goodRows,c(4:5)]*
+                         x.out$out[goodRows,"M"],na.rm=T)/sum(x.out$out[goodRows,"M"])
           #Now get the variances
           goodRows=(x.out$out[,"m"]>1)
-          Svars=colSums(x.out$out[,c(6:7)][goodRows,]*
-                          (x.out$out[,"M"][goodRows]^2),na.rm=T)/sum(x.out$out[,"M"][goodRows])^2
+          if(length(goodRows)==1) {
+            Svars=(x.out$out[goodRows,c(6:7)]*
+                            (x.out$out[goodRows,"M"]^2))/sum(x.out$out[goodRows,"M"])^2
+          } else Svars=colSums(x.out$out[goodRows,c(6:7)]*
+                          (x.out$out[goodRows,"M"]^2),na.rm=T)/sum(x.out$out[goodRows,"M"])^2
           Ind.out<-rbind(Ind.out,c(Yeari,Tows
                       ,SMns,Svars)) 
           #The indices at length require similar manipulation
@@ -718,14 +724,23 @@ server = function(input, output, session){
               #logvar=log(1+Ind.out$VarWt/(Ind.out$Wt)^2)
               #ci=data.frame(Ind.out,"lci"=Ind.out$Wt*logvar,"uci"=Ind.out$Wt/logvar )
               
-              print(ci)
+              #print(ci)
               
-              plot1<-ggplot(Ind.out, aes(x=Year, y=Wt)) +
-                   geom_line() +
-                   geom_ribbon(data=ci,aes(ymin=lci,ymax=uci),alpha=0.3) +
-                   theme_bw()
-    
-              print(plot1)
+              p1<-ggplot2::ggplot(Ind.out, aes(x=Year, y=Wt)) +
+                ggplot2::geom_line() +
+                ggplot2::geom_ribbon(data=ci,aes(ymin=lci,ymax=uci),alpha=0.3) +
+                ggplot2::theme_bw()
+              
+              ciNum=data.frame(Ind.out,"lci"=Ind.out$Num-1.96*(sqrt(Ind.out$VarNum))  #/Ind.out$Tows
+                            ,"uci"=Ind.out$Num+1.96*(sqrt(Ind.out$VarNum) ))  #/Ind.out$Tows
+              print(ciNum)
+              p2<-ggplot2::ggplot(Ind.out, aes(x=Year, y=Num)) +
+                ggplot2::geom_line() +
+                ggplot2::geom_ribbon(data=ciNum,aes(ymin=lci,ymax=uci),alpha=0.3) +
+                ggplot2::theme_bw()             
+              gridExtra::grid.arrange(p1,p2,ncol=1)
+              
+              #print(plot1)
             }
           })
         } else print("Invalid Stratum Selection: no observations of selected species in strata")

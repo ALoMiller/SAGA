@@ -142,12 +142,12 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   S.n.w.stratum <- t(sapply(str.size$STRATUM, 
                             function(x) var(catch.data[which(catch.data$STRATUM== x),c('EXPCATCHNUM','EXPCATCHWT')])))
   #We only need the variances so drop the covariance cols
-  S.n.w.stratum <- S.n.w.stratum[,c(1,4)] #NEED TO CHECK THESE AGAINST KNOWN VARIANCES!!!
+  S.n.w.stratum <- S.n.w.stratum[,c(1,4)] 
   
   #weighting factor for each stratum (area of stratum/area sampled) * effort
   N.W.hat.stratum <- M * samp.tot.n.w/m
   #variance weighting factor
-  Vhat.N.W.hat.stratum <- M^2 * (1 - m/M) * S.n.w.stratum/m
+  Vhat.N.W.hat.stratum <- matrix((M^2 * (1 - m/M) * S.n.w.stratum/m),ncol=2)
   n.strata <- length(M)
   
   if(do.length){
@@ -186,6 +186,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     #result is a matrix with a row for each stratum and a col for each length
     samp.tot.nal <- sapply(lengths, function(x) sapply(str.size$STRATUM
                     , function(y) sum(len.data$EXPNUMLEN[len.data$STRATUM == y & len.data$LENGTH == x],na.rm = TRUE)))
+    samp.tot.nal<-matrix(samp.tot.nal,nrow=length(strata))
     rownames(samp.tot.nal) <- as.character(strata)
     colnames(samp.tot.nal) <- as.character(lengths)
     #print(head(len.data))
@@ -299,6 +300,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   }
   
   #data.frame of stratified indices and variances 
+  dimnames(Vhat.N.W.hat.stratum)[[1]]=NULL
+  dimnames(Vhat.N.W.hat.stratum)[[2]]=c("VARNUM", "VARWT")
   out <- cbind(stratum = str.size$STRATUM, M = M, m = m, mean.n.w.per.tow = N.W.hat.stratum/M
                , V.mean.n.w.per.tow = Vhat.N.W.hat.stratum/(M^2))
   out <- list(out = out)
