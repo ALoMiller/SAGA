@@ -610,7 +610,14 @@ server = function(input, output, session){
                                                   big.len.calib=big.len.calib,
                                                   S=S,H=H,G=G
                                                   )
-        
+          #Progress bar
+          withProgress(message=paste0('Calculating indices for ',yrs[i]),{
+            for (i in 1:10) {
+              incProgress(1/10)
+              
+            }
+          })
+          
           #Take the important parts from x.out to generate an index over time.
           Yeari=as.integer(substr(paste(cruise6[i]),1,4))
           Tows=sum(x.out$out[,"m"]) #number of tows in the year in question
@@ -688,14 +695,6 @@ server = function(input, output, session){
         names(IAA.out)=c('Year','nTows',paste0("Age",age.range),'Total')
         } else IAA.out="No ages"
         
-        withProgress(message=paste0('Calculating indices for ',yrs[i]),{
-          for (i in 1:10) {
-            incProgress(1/10)
-           
-          }
-        })
-      
-      
         #try saving the data in a reactiveValues for later download 
         All.out<<-list( #Note that the assignment is done with " <<- " !!
           "Index"=Ind.out
