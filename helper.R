@@ -241,7 +241,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         # function to compute proportions of age at length using multinomial approach
         # based on code from Mike Bednarski and then stolen from ADIOS again
         get.mult.props<-function(big.len=NULL,big.age=NULL,ref.age=NULL){
-          data<-WtLenEx[!is.na(WtLenEx$AGE),]
+          data<-WtLenEx[!is.na(WtLenEx$AGE) & WtLenEx$AGE%in%big.age,]
           #data$AGE <- relevel(as.factor(data$AGE), ref=ref.age) # relevel and make categorical
           data$AGE <- as.factor(data$AGE)
           my.levels <- as.numeric(levels(data$AGE))
@@ -260,23 +260,24 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
           }
           p.unscaled <- exp(logits)
           p.normalized <- p.unscaled / rowSums(p.unscaled)
-          p <- matrix(0, nrow=length(big.len), ncol=(big.age+1)) # note starting at age 0
+          p <- matrix(0, nrow=length(big.len), ncol=length(big.age)) # note starting at min big.age
           for (i in 1:n.levels){
-            p[,(my.levels[i]+1)] <- p.normalized[,i]
+            #p[,(my.levels[i]+1)] <- p.normalized[,i]
+            p[,which(my.levels[i]==big.age)] <- p.normalized[,i]
           }
-          colnames(p)<-c(paste("pred.",0:big.age, sep=""))
+          colnames(p)<-c(paste("pred.",big.age, sep=""))
           return(p)
         } #end get.mult.props function
         
         #Can only fit this if there is more than one age!
         if(length(unique(WtLenEx$AGE[!is.na(WtLenEx$AGE)]))>1) {
-          mult.props<- get.mult.props(big.len=(lengths),big.age=max(ages))
+          mult.props<- get.mult.props(big.len=(lengths),big.age=seq(min(ages),max(ages)))
               #,ref.age = 3) #don't think we need this
         } else { #if there is only one age then you have 100% in one row
           p <- matrix(0, nrow=length(lengths), ncol=(max(ages)+1))
           p[min(WtLenEx$LENGTH[!is.na(WtLenEx$AGE)]):max(WtLenEx$LENGTH[!is.na(WtLenEx$AGE)])
             ,(unique(WtLenEx$AGE[!is.na(WtLenEx$AGE)])+1)]=1
-          colnames(p)<-c(paste("pred.",0:max(ages), sep=""))
+          colnames(p)<-c(paste("pred.",ages, sep=""))
           mult.props=p 
         }
         
@@ -287,11 +288,11 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         Naa.hat.stratum=matrix(as.numeric(paste(Naa.hat.stratum)),nrow=nrow(Naa.hat.stratum))
         #Naa.hat.stratum=rbind(Naa.hat.stratum,"Total"=colSums(Naa.hat.stratum)) #add a row for the total - this is done in App.R
         Naa.hat.stratum=data.frame(strata,Naa.hat.stratum,stringsAsFactors = F) #make sure the strata names are preserved
-        names(Naa.hat.stratum)=c("Stratum",paste0("Age",0:max(ages))) #rename cols
+        names(Naa.hat.stratum)=c("Stratum",paste0("Age",ages)) #rename cols
       } else { #No data condition
           Naa.hat.stratum=c();
           Naa.hat.stratum=data.frame(strata,matrix(NA,nrow=length(strata),ncol=(max(ages)+1)),stringsAsFactors = F)
-          names(Naa.hat.stratum)=c("Stratum",paste0("Age",0:max(ages))) #rename cols
+          names(Naa.hat.stratum)=c("Stratum",paste0("Age",ages)) #rename cols
         }
       
     }
@@ -355,8 +356,8 @@ showNotification2 <- function (ui, action = NULL, duration = 5, closeButton = TR
   id <- shiny:::createUniqueId(8)
   res <- shiny:::processDeps(HTML(ui), session)
   actionRes <- shiny:::processDeps(action, session)
-  print(res$html)
-  session$sendNotification("show", list(html = shiny::tags$iframe(res$html), action = actionRes$html, 
+  #print(res$html)
+  session$sendNotification("show", list(html = res$html, action = actionRes$html, 
                                         deps = c(res$deps, actionRes$deps), duration = if (!is.null(duration)) duration * 
                                           1000, closeButton = closeButton, id = id, type = match.arg(type)))
   id
