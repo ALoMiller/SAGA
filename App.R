@@ -270,7 +270,10 @@ ui <-
                   ," hit the run button again to develop new indices based on the slected inputs."),
                 h4("Download .csv Data"),
                 p(paste0(" Click this buttom once the plot of the indices has been displayed to download the survey indices in .csv "
-                  ," format. The file will include indices at length, age and by strata, as well as the inputs selected.")),
+                         ," format. The file will include indices at length, age and by strata, as well as the inputs selected.")),
+                p(paste0("Please note that the column at the far right of the indices at length is the total across the selected"
+                         ,"size and age range.")),
+                em(strong("*The overall indices are for all available sizes and ages.*")),
                 h4("Download Rdata"),
                 p(paste0(" Click this buttom once the plot of the indices has been displayed to download the survey indices as "
                   ," an Rdata object. The resulting file can be read using load() in R. It will load an object called "
