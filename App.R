@@ -572,7 +572,7 @@ server = function(input, output, session){
     userInputs<<-list("species"=input$species,"strata"=strata.in,"years"=seq(min(input$years),max(input$years))
                     ,"season"=input$season,"len.range"=len.range,"age.range"=age.range)
     
-    dput(userInputs,"user.Inputs") #for error trapping REMOVE BEFORE POSTING
+    dput(userInputs,"user.Inputs") #for error trapping $$$$$$$$$$$$$$ REMOVE BEFORE POSTING $$$$$$$$$$$$$$$$$$$$$$
     
     if(length(cruise6)>0){
       #Destroy the saved memory objects that are outputs
