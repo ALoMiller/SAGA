@@ -10,10 +10,13 @@ library(ggplot2)
 #library(sf)
 #library(mapview)
 
+#CHANGE TO YOUR PASSWORD AND USER NAME!!!!! **************************************************
+Sys.setenv(ORACLE_HOME="/ora1/app/oracle/product/11.2.0/dbhome_1")
+sole <- odbcConnect(dsn="sole", uid="xxxxx", pwd="xxxxxxx", believeNRows=FALSE)
 #webshot::install_phantomjs()
 
 source("chooser.R") 
-Sys.setenv(ORACLE_HOME="/ora1/app/oracle/product/11.2.0/dbhome_1")
+#Sys.setenv(ORACLE_HOME="/ora1/app/oracle/product/11.2.0/dbhome_1")
 species <- read.csv('files/speciesTable.csv')
 spp.list <- split(species$SVSPP,species$COMNAME)
 strata.list <- read.csv('files/StrataList.csv')
