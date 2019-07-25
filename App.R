@@ -574,6 +574,10 @@ server = function(input, output, session){
     
     dput(userInputs,"user.Inputs") #for error trapping $$$$$$$$$$$$$$ REMOVE BEFORE POSTING $$$$$$$$$$$$$$$$$$$$$$
     
+    
+    showNotification(" Running... ",duration=NULL,id="running",type="message")
+    
+    
     if(length(cruise6)>0){
       #Destroy the saved memory objects that are outputs
       Ind.out=c();IAL.out=c();VIAL.out=c();IAA.out=c();maxL=max(len.range);minL=min(len.range);unUsedStrata=strata.in;
@@ -728,6 +732,8 @@ server = function(input, output, session){
         } else print("Invalid Stratum Selection: no observations of selected species in strata")
       } else print("Invalid Stratum Selection: no observations of selected species in strata")
       
+      removeNotification(id="running")
+    
       #show warnings in notification form and remove existing old notifications
       if(minL<min(len.range)) {showNotification(paste0("Minimum observed size (", minL
           ,") is less than the selected minimum size (", min(len.range),")" ),id="minLid",duration=NULL,type="warning")
