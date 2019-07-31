@@ -758,12 +758,12 @@ server = function(input, output, session){
       removeNotification(id="running")
     
       #show warnings in notification form and remove existing old notifications
-      if(minL<min(len.range)) {showNotification(paste0("Minimum observed size (", minL
-          ,") is less than the selected minimum size (", min(len.range),")" ),id="minLid",duration=NULL,type="warning")
-      } else removeNotification(id="minLid")
-      if(maxL>max(len.range)) {showNotification(paste0("Maximum observed size (", maxL
-          ,") is greater than the selected maximum size (", max(len.range),")" ),id="maxLid",duration=NULL,type="warning")
-      } else removeNotification(id="maxLid")
+      # if(minL<min(len.range)) {showNotification(paste0("Minimum observed size (", minL
+      #     ,") is less than the selected minimum size (", min(len.range),")" ),id="minLid",duration=NULL,type="warning")
+      # } else removeNotification(id="minLid")
+      # if(maxL>max(len.range)) {showNotification(paste0("Maximum observed size (", maxL
+      #     ,") is greater than the selected maximum size (", max(len.range),")" ),id="maxLid",duration=NULL,type="warning")
+      # } else removeNotification(id="maxLid")
       if(length(unUsedStrata)>0) {showNotification(paste0(" The following strata had no observed catch during the selected years: "
           ,unUsedStrata),duration=NULL,id="unusedid",type="warning")
       } else removeNotification(id="unusedid")
@@ -777,7 +777,7 @@ server = function(input, output, session){
         # CheckTows=apply(UnSampledStrata,1,FUN=function(x) paste(x,collapse=" , "))
         # CheckTows=paste(CheckTows,"\n",collapse="")
          CheckTows=shiny::HTML(paste0(" The following strata had no tows: ",paste0(UnSampledStrata2,collapse = " ")))
-         print((CheckTows))
+         #print((CheckTows))
          #shiny::tags$iframe(,scrolling="yes")
          showNotification2(CheckTows,duration=NULL,id="unTowedid",type="warning")
       } else removeNotification(id="unTowedid")   

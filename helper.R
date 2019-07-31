@@ -294,8 +294,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         #Naa.hat.stratum=rbind(Naa.hat.stratum,"Total"=colSums(Naa.hat.stratum)) #add a row for the total - this is done in App.R
         Naa.hat.stratum=data.frame(strata,Naa.hat.stratum,stringsAsFactors = F) #make sure the strata names are preserved
         #Now clip out the ages that the user did not want
-        print(ages)
-        print((Naa.hat.stratum))
+        #print(ages)
+        #print((Naa.hat.stratum))
         Naa.hat.stratum[,2:(length(ages)+1)]=Naa.hat.stratum[,(which(BigAge%in%ages)+1)]
         Naa.hat.stratum=Naa.hat.stratum[,1:(length(ages)+1)]
         names(Naa.hat.stratum)=c("Stratum",paste0("Age",ages)) #rename cols
@@ -323,10 +323,12 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   
   #warning(paste0("Some strata for survey have zero tows, will extrapolate data to these areas"))
   ZeroTows=c()
-  if(any(out$out[,"m"] ==0)) ZeroTows=out$out[which(out$out[,"m"]>0),"stratum"] 
+  if(any(out$out[,"m"] == 0)) ZeroTows=out$out[which(out$out[,"m"]==0),"stratum"] 
   out$expand = sum(M)/sum(M[which(m>0)]) #=1 if all strata are sampled
   #report warnings
   out$warnings=list(LengthRange=Lrange,UnusedStrata=out$out[,"stratum"][out$out[,"EXPCATCHNUM"]==0.0],UnsampledStrata=ZeroTows)
+  #print(out$out)
+  
   
   return(out)
 }
