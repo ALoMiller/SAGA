@@ -226,6 +226,9 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     
     if(do.age){
       #AGE
+      species <- read.csv('files/speciesTable.csv')
+      BigRange=(species[which(species$SVSPP==spp),c("MINA","MAXA")]) #need this for the multinomial fit
+      BigAge=seq(as.numeric(BigRange[1]),as.numeric(BigRange[2]))
       q.age <- paste("select  cruise6, stratum, tow, station, sex, length, age, indwt, maturity from svdbs.union_fscs_svbio ",
                      " where cruise6 = ", survey, " and STRATUM IN ('", paste(strata, collapse = "','"), "')",
                      " and svspp = ", spp, " and age is not null order by cruise6, stratum, tow, station", sep = '')
@@ -272,7 +275,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         
         #Can only fit this if there is more than one age!
         if(length(unique(WtLenEx$AGE[!is.na(WtLenEx$AGE)]))>1) {
-          mult.props<- get.mult.props(big.len=(lengths),big.age=seq(min(ages),max(ages)))
+          #The multnomial should fit to all the ages in the data and then clip to the user specified range afterwards
+          mult.props<- get.mult.props(big.len=(lengths),big.age=BigAge)
               #,ref.age = 3) #don't think we need this
         } else { #if there is only one age then you have 100% in one row
           p <- matrix(0, nrow=length(lengths), ncol=(max(ages)+1))
@@ -289,6 +293,11 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         Naa.hat.stratum=matrix(as.numeric(paste(Naa.hat.stratum)),nrow=nrow(Naa.hat.stratum))
         #Naa.hat.stratum=rbind(Naa.hat.stratum,"Total"=colSums(Naa.hat.stratum)) #add a row for the total - this is done in App.R
         Naa.hat.stratum=data.frame(strata,Naa.hat.stratum,stringsAsFactors = F) #make sure the strata names are preserved
+        #Now clip out the ages that the user did not want
+        print(ages)
+        print((Naa.hat.stratum))
+        Naa.hat.stratum[,2:(length(ages)+1)]=Naa.hat.stratum[,(which(BigAge%in%ages)+1)]
+        Naa.hat.stratum=Naa.hat.stratum[,1:(length(ages)+1)]
         names(Naa.hat.stratum)=c("Stratum",paste0("Age",ages)) #rename cols
       } else { #No data condition
           Naa.hat.stratum=c();

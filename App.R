@@ -246,7 +246,10 @@ ui <-
               h4("Select range of length and age"),
               p(paste0(" The sliders for length and age will automatically generate bounds based on the minimum and maximum"
                       ," observed for the slected species. The range of lengths and ages can be further restricted by moving "
-                      ," the sliders. ")),
+                      ," the sliders. Indices at age are developed by first generating an age at length matrix using a multinomial"
+                      ," fit to the observed ages at length. This matrix is then used to estimate an age for each length in the "
+                      ," data. After each length has been assigned an age, any ages the user has dropped using the slider are "
+                      ," removed and do not contribute to the totals for the indices at age. ")),
               h4("SHG values"),
               p(paste0(" SHG values are used to assess the quality of each survey tow. "
                        ," S stands for station value. It is a code designating the type of tow (random vs. nonrandom, e.g.). An "
@@ -569,8 +572,8 @@ server = function(input, output, session){
     #if(input$minLength<len.view$MINL | input$maxLength>len.view$MAXL) print(c("New range: ",len.range))
     #print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season ])
     #print(survey.cruises$CRUISE6[survey.cruises$YEAR %in% seq(min(input$years),max(input$years))])
-    userInputs<<-list("species"=input$species,"strata"=strata.in,"years"=seq(min(input$years),max(input$years))
-                    ,"season"=input$season,"len.range"=len.range,"age.range"=age.range)
+    userInputs<<-list("species"=input$species,"strata"=strata.in,"years"=range(input$years)
+                    ,"season"=input$season,"len.range"=range(len.range),"age.range"=range(age.range))
     
     dput(userInputs,"user.Inputs") #for error trapping $$$$$$$$$$$$$$ REMOVE BEFORE POSTING $$$$$$$$$$$$$$$$$$$$$$
     
@@ -706,6 +709,12 @@ server = function(input, output, session){
           ,"NatLength"=IAL.out
           ,"VarNatLength"=VIAL.out
           ,"NatAge"=IAA.out
+          #,"Species"=userInputs$species
+          #,"Strata"=userInputs$strata
+          # ,"Years"=range(userInputs$years)
+          # ,"Season"=userInputs$season
+          # ,"Lengths"=range(userInputs$len.range)
+          # ,"Ages"=range(userInputs$age.range)
         )
         
         #plot the indices for something to look at after a successful run
@@ -864,7 +873,8 @@ server = function(input, output, session){
   #______________________________________________________________________________________________________
   
   getInputs=reactive({
-    if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
+    #if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
+    
   })
   
   output$downloadData <- downloadHandler(
@@ -873,7 +883,7 @@ server = function(input, output, session){
       
       #All.out is bound to the reactive variables and assigned from within the observe event environment with "<<-"
       #so it should be visible here.
-      
+      #print(str(All.out))
       #Huge pain in the ass to get this to print the names of the list objects... 
       write.list=function(x) {
         write.table(x,file,append=T,sep=",",row.names = F,col.names = F)
@@ -882,12 +892,12 @@ server = function(input, output, session){
       suppressWarnings(lapply(names(All.out),write.list))
       
       # if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
-      user.Inputs=getInputs()
-      write.list=function(x) {
-        write.table(x,file,append=T,sep=",",row.names = F,col.names = F)
-        write.table(data.frame(user.Inputs[[x]]),file,row.names = F,append= T,sep=',' ,col.names = F)
-      }
-      suppressWarnings(lapply(names(user.Inputs),write.list))
+      # user.Inputs=getInputs()
+       write.list=function(x) {
+         write.table(x,file,append=T,sep=",",row.names = F,col.names = F)
+         write.table(data.frame(userInputs[[x]]),file,row.names = F,append= T,sep=',' ,col.names = F)
+       }
+       suppressWarnings(lapply(names(userInputs),write.list))
      
     }
   )
@@ -897,9 +907,10 @@ server = function(input, output, session){
     content = function(file) {
       #All.out should now be defined when the run button is hit. 
       #All.out=getOutput()
-      user.Inputs=getInputs()
+      #user.Inputs=getInputs()
       
-      SAGAr=list("Indices"=All.out,"UserInputs"=user.Inputs)
+      #SAGAr=list("Indices"=All.out,"UserInputs"=user.Inputs)
+      SAGAr=list("Indices"=All.out)
       save(SAGAr,file=file)
       
     }
