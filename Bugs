@@ -1,0 +1,53 @@
+From Chris:
+1. There should be a TOGA criteria for the Bigelow years, similar to the SHG criteria for Albatross years. The default for TOGA is 132X (where X means any value). When I looked at a Georges Bank yellowtail flounder run for the Bigelow years, the shiny app had many more Tows than I did in my ADIOS run.
+2. In the SHG boxes, I could not read the values that I entered. When I tried to just delete them for a Bigelow years run, it caused the program to crash.
+
+3. A plot of the numbers over time would be a useful default output.
+
+4. In the csv file that is saved, it would be nice to capture the input settings (e.g., length range (with a note if full length range selected), and whether any calibrations were applied.
+
+5. Also in the csv file, the species seems to default to BLACK SEA BASS no matter what species you actually use. The strata listed in the csv file did not correspond to the strata I selected in the shiny app (perhaps clicking on the strata out of order caused a problem?).
+
+6. I do not understand how you can select a range of ages because not every fish is aged. When I tried to limit the ages, it caused the program to crash. Perhaps this slider could be removed?
+
+7. In the maps, when I click on a bubble it would nice to add the year because I couldn't tell which year it was within the set of years that I looked at. Alternatively, would it be easy to add a pull down menu for year that includes the option for "All" as well as each individual year? Could go crazy and animate it over the years if really want to get fancy.
+
+8. The program crashes if I select only a single stratum.
+
+
+
+
+From Gary:
+9. I ran the sea bass for Bigelow years and got a 2014 VarNatLength string of NA. There was data in the NatLength. In that year strata combo there were 99 tows. Is it possible it ids it as missing?
+
+10.Would be nice to have a graph with # per tow along with the wt
+
+11.Most people are now using TOGA instead of SHG
+
+12.The map does not download. When I go to the download it says no file available and that is it, the run with the map is now gone. Poof.
+
+
+
+
+From Jon:
+13. Error message logic is not correct (strata listed as with 0 tows have tows).
+
+14. User inputs output in csv are not correct.
+
+15. Size/age error message is not working correctly.
+
+16. Certain selections of strata cause the app to break (slecting from bottom upwards seems to do it).
+
+17. Stratum 03920 is listed twice in chooser - should check all strata to make sure they are legit and in data. 
+
+
+
+
+
+
+
+
+
+
+
+
