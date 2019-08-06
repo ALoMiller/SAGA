@@ -44,8 +44,8 @@ From Gary:
 
 12.The map does not download. When I go to the download it says no file available and that is it, the run with the map is 
      now gone. Poof.
-
-
+      *Fixed (moved everything inside the observeEvent function which makes all the reactives visible to the download handlers
+         -also fixed the naming conventions on the files for all downloads. 
 
 
 From Jon:
