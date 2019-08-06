@@ -494,7 +494,8 @@ server = function(input, output, session){
   All.out<-list()
   makeReactiveBinding("All.out")
   User.Inputs=list()  #don't need to make reactive (I think) because this is made of reactive values 
-
+  
+  
   observeEvent(input$runBtn,{ #if run button is pushed:
     
     print("Running")
@@ -782,20 +783,20 @@ server = function(input, output, session){
          showNotification2(CheckTows,duration=NULL,id="unTowedid",type="warning")
       } else removeNotification(id="unTowedid")   
     
-    }) #end observe "run" event
-  
-  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  #                                       MAP section 
-  #______________________________________________________________________________________________________
-  observeEvent(input$runBtn,{ #if run button is pushed:
+  #   }) #end observe "run" event
+  # 
+  # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  # #                                       MAP section 
+  # #______________________________________________________________________________________________________
+  # observeEvent(input$runBtn,{ #if run button is pushed: #DRH not sure why we need 2 observe events??? 
     
-    get_data <- reactive({ #This is the get data button
+    get_data <- reactive({ #This is the get data function for the map
     #Get user inputs
     strata <- input$mychooser$right
     strata <- ifelse(nchar(strata)<5,paste0('0', strata),strata) #fix for when this is run twice - it adds another 0 and causes many errors
-    S<-input$S
-    H<-input$H
-    G<-input$G 
+    # S<-input$S #already done above 
+    # H<-input$H
+    # G<-input$G 
     #develop sql query for data using input criteria
     q.sta <- paste0("select id, cruise6, stratum, tow, station, shg, svvessel, svgear, est_year, est_month, est_day, ",
                     "substr(est_time,1,2) || substr(est_time,4,2) as time, towdur, dopdistb, dopdistw, avgdepth, ",
@@ -828,49 +829,51 @@ server = function(input, output, session){
     #print(table(catch.data$SEASON))  
     return(catch.data)
     
-  })
-  
-  foundational.map <- reactive({
+    }) #end of get_data
     
-    #builds the map from sql query and inputs
-    catch.data <- get_data()
-    # print(table(catch.data$SEASON)) 
-    leaflet() %>% # create a leaflet map widget
-      addProviderTiles("CartoDB.Positron") %>%
-      setView(-71, 40, 6) %>% # map location
-      addPolylines(data = Strata, color = "grey", weight = 1.5) %>%
-      addCircles(color='navy',catch.data$DECDEG_BEGLON[catch.data$EXPCATCHNUM>0],catch.data$DECDEG_BEGLAT[catch.data$EXPCATCHNUM>0],
-                 popup = paste("Station: ",catch.data$STATION.x[catch.data$EXPCATCHNUM>0], "<br>",
-                               "Stratum: ",catch.data$STRATUM.x[catch.data$EXPCATCHNUM>0], "<br>",
-                               "Tow: ",catch.data$TOW.x[catch.data$EXPCATCHNUM>0], "<br>",
-                               "Catch Wt (kg): ",catch.data$EXPCATCHWT[catch.data$EXPCATCHNUM>0], "<br>",
-                               "Catch Num: ",catch.data$EXPCATCHNUM[catch.data$EXPCATCHNUM>0], "<br>",
-                               "Season: ",catch.data$SEASON[catch.data$EXPCATCHNUM>0]),
-                 stroke = FALSE, fillOpacity = 0.4,
-                 radius = catch.data$bubbleSize[catch.data$EXPCATCHNUM>0]*5000)  
-  
-  })
-  
-  output$myMap = leaflet::renderLeaflet({
-    foundational.map() #This just calls the reactive map
-  })
+    foundational.map <- reactive({
+      #builds the map from sql query and inputs
+      catch.data <- get_data()
+      # print(table(catch.data$SEASON))
+      leaflet() %>% # create a leaflet map widget
+        addProviderTiles("CartoDB.Positron") %>%
+        setView(-71, 40, 6) %>% # map location
+        addPolylines(data = Strata, color = "grey", weight = 1.5) %>%
+        addCircles(color='navy',catch.data$DECDEG_BEGLON[catch.data$EXPCATCHNUM>0],catch.data$DECDEG_BEGLAT[catch.data$EXPCATCHNUM>0],
+                   popup = paste("Station: ",catch.data$STATION.x[catch.data$EXPCATCHNUM>0], "<br>",
+                                 "Stratum: ",catch.data$STRATUM.x[catch.data$EXPCATCHNUM>0], "<br>",
+                                 "Tow: ",catch.data$TOW.x[catch.data$EXPCATCHNUM>0], "<br>",
+                                 "Catch Wt (kg): ",catch.data$EXPCATCHWT[catch.data$EXPCATCHNUM>0], "<br>",
+                                 "Catch Num: ",catch.data$EXPCATCHNUM[catch.data$EXPCATCHNUM>0], "<br>",
+                                 "Season: ",catch.data$SEASON[catch.data$EXPCATCHNUM>0]),
+                   stroke = FALSE, fillOpacity = 0.4,
+                   radius = catch.data$bubbleSize[catch.data$EXPCATCHNUM>0]*5000)
 
-  # store the current user-created version
-  # of the Leaflet map for download in 
-  # a reactive expression
-  user.created.map <- reactive({
-    # call the foundational Leaflet map
-    foundational.map() %>%
-      # store the view based on UI
-      setView( lng = input$map_center$lng
-               ,  lat = input$map_center$lat
-               , zoom = input$map_zoom
-      )
-  }) # end of creating user.created.map()
-  })
+    })
+    
+    #print(str(foundational.map()))
+    
+    output$myMap = leaflet::renderLeaflet({
+      foundational.map() #This just calls the reactive map
+    })
+  
+    # store the current user-created version
+    # of the Leaflet map for download in 
+    # a reactive expression
+    user.created.map <- reactive({
+      # call the foundational Leaflet map
+      foundational.map() %>%
+        # store the view based on UI
+        setView( lng = input$map_center$lng
+                 ,  lat = input$map_center$lat
+                 , zoom = input$map_zoom
+        )
+    }) # end of creating user.created.map()
+  #}) #end of observeEvent 
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   #                                       Output handling section 
   #______________________________________________________________________________________________________
+  
   
   getInputs=reactive({
     #if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
@@ -878,7 +881,7 @@ server = function(input, output, session){
   })
   
   output$downloadData <- downloadHandler(
-    filename = function() { paste(input$species, input$season, min(input$len1[1]), max(input$len1[2]), '.csv', sep='_') },
+    filename = function() { paste(input$species, input$season, input$len1[1], input$len1[2], '.csv', sep='_') },
     content = function(file) {
       
       #All.out is bound to the reactive variables and assigned from within the observe event environment with "<<-"
@@ -898,12 +901,11 @@ server = function(input, output, session){
          write.table(data.frame(userInputs[[x]]),file,row.names = F,append= T,sep=',' ,col.names = F)
        }
        suppressWarnings(lapply(names(userInputs),write.list))
-     
     }
   )
   
   output$downloadDataR <- downloadHandler(
-    filename = function() { paste(input$species, input$season, min(input$len1[1]), max(input$len1[2]), '.RData', sep='_') },
+    filename = function() { paste(input$species, input$season,input$len1[1],input$len1[2], '.RData', sep='_') },
     content = function(file) {
       #All.out should now be defined when the run button is hit. 
       #All.out=getOutput()
@@ -929,7 +931,8 @@ server = function(input, output, session){
   # )  
   
   output$downloadMapHTML <- downloadHandler(
-    filename = function() { paste("SurveyMap",input$species, input$season, min(input$minLength), max(input$maxLength), '.html', sep='_') },
+    filename = function() { paste("SurveyMap",input$species, input$season
+                                  , input$len1[1],input$len1[2], '.html', sep='_') },
     content = function(file) {
       htmlwidgets::saveWidget(
          widget = foundational.map()
@@ -950,5 +953,7 @@ server = function(input, output, session){
   })
   # htmlwidgets::saveWidget(output$myMap, "temp.html", selfcontained = FALSE)
   #  webshot::webshot("temp.html", file = paste0(Sys.time(),"_map.png"))   
+   
+  }) #end of observeEvent  #DRH - I put everything inside the observe event and now the download handlers can see all the arguments
 }
 shinyApp(ui, server)
