@@ -38,11 +38,13 @@ option for "All" as well as each individual year? Could go crazy and animate it 
 From Gary:
 9. I ran the sea bass for Bigelow years and got a 2014 VarNatLength string of NA. There was data in the NatLength. In that 
      year strata combo there were 99 tows. Is it possible it ids it as missing?
+       *I can't reproduce this error
 
 10.Would be nice to have a graph with # per tow along with the wt
       *Fixed
 
 11.Most people are now using TOGA instead of SHG
+       *Added
 
 12.The map does not download. When I go to the download it says no file available and that is it, the run with the map is 
      now gone. Poof.
