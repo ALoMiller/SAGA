@@ -141,7 +141,11 @@ ui <-
                               column(6,
                                      uiOutput("ui.age"))),
                             
-                            h5(strong("SHG values")),
+                            #h5(strong("SHG values (pre 2009) and TOGA values (after 2009)")),
+                            fluidRow(
+                              column(6,h5(strong("SHG values (pre 2009)"))),
+                              column(6,h5(strong("TOGA values (post 2008)")))
+                            ),  
                             fluidRow(
                               column(2,
                                      textInput("S", 
@@ -157,6 +161,21 @@ ui <-
                                      textInput("G", 
                                                label = HTML("Gear &le;"), 
                                                value = "6", 
+                                               width = "70px")),
+                              column(2,
+                                     textInput("Type", 
+                                               label = HTML("Type &le;"), 
+                                               value = "1", 
+                                               width = "70px")),
+                              column(2,
+                                     textInput("Operation", 
+                                               label = HTML("Oper. &le;"), 
+                                               value = "3", 
+                                               width = "70px")),
+                              column(2,
+                                     textInput("Gear", 
+                                               label = HTML("Gear &le;"), 
+                                               value = "2", 
                                                width = "70px"))
                             ),
                             fluidRow(
@@ -556,13 +575,13 @@ server = function(input, output, session){
     H<-input$H
     G<-input$G
     #TOGA place holder - needs the UI boxes and input changes! 
-    Type<-1
-    Operation<-3
-    Gear<-2
+    # Type<-1
+    # Operation<-3
+    # Gear<-2
     Acquisition<-"X"
-    # Type<-input$Type
-    # Operation<-input$Operation
-    # Gear<-input$Gear
+    Type<-input$Type
+    Operation<-input$Operation
+    Gear<-input$Gear
     # Acquisition<-input$Acquisition
     
     #Expand to cover unsampled strata? For now this is automatic, but could be built into an reactive input

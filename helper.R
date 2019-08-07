@@ -45,11 +45,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   print(survey)
   
   if(as.integer(substr(paste(survey),1,4))<2009) { #TOGA is not needed for pre Bigelow years
-    Type=NULL
-    Operation=NULL
-    Gear=NULL
-    Acquisition=NULL
-  } 
+    TowCoding=paste0( " and STATYPE <= ",S," and HAUL <= ",H," and GEARCOND <= ", G) 
+  } else TowCoding=paste0(" and TYPE_CODE <= ", Type, " and OPERATION_CODE <= ", Operation, " and GEAR_CODE <= ", Gear) 
   
   #STATION location data 
   q.sta <- paste("select cruise6, stratum, tow, station, shg, svvessel, svgear, est_year, est_month, est_day, ",
@@ -60,10 +57,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                  #this would only get one year of survey data! option to fix below
                  #"where cruise6 in ('", paste(survey, collapse = "','"), "')"
                  , " and STRATUM IN ('", paste(strata, collapse = "','"), "')"
-                 , " and STATYPE <= ",S," and HAUL <= ",H," and GEARCOND <= ", G #changing this to allow user specified SHG choices
-                 #" and shg<= '136' order by cruise6, stratum, tow, station", sep = '')
-                 , "and TYPE_CODE <= ", Type, " and OPERATION_CODE <= ", Operation, " and GEAR_CODE <= ", Gear  #TOGA coding (acquisition not used)
-                 , " order by cruise6, stratum, tow, station", sep = '')
+                 , TowCoding, " order by cruise6, stratum, tow, station", sep = '')
   sta.view <- sqlQuery(oc,q.sta) 
   temp <- str.size[match(sta.view$STRATUM, str.size$STRATUM),]
   sta.view <- cbind(sta.view, temp[,-1])
