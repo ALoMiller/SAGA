@@ -21,6 +21,10 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                                               S=1,
                                               H=3,
                                               G=6,
+                                              Type=1,
+                                              Operation=3,
+                                              Gear=2,
+                                              Acquisition="X",
                                               species=NULL,
                                               spring.cruises=NULL,
                                               fall.cruises=NULL,
@@ -40,6 +44,13 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   str.size$ExpAreas <- str.size$STRATUM_AREA/tow_swept_area
   print(survey)
   
+  if(as.integer(substr(paste(survey),1,4))<2009) { #TOGA is not needed for pre Bigelow years
+    Type=NULL
+    Operation=NULL
+    Gear=NULL
+    Acquisition=NULL
+  } 
+  
   #STATION location data 
   q.sta <- paste("select cruise6, stratum, tow, station, shg, svvessel, svgear, est_year, est_month, est_day, ",
                  "substr(est_time,1,2) || substr(est_time,4,2) as time, towdur, dopdistb, dopdistw, avgdepth, ",
@@ -51,6 +62,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                  , " and STRATUM IN ('", paste(strata, collapse = "','"), "')"
                  , " and STATYPE <= ",S," and HAUL <= ",H," and GEARCOND <= ", G #changing this to allow user specified SHG choices
                  #" and shg<= '136' order by cruise6, stratum, tow, station", sep = '')
+                 , "and TYPE_CODE <= ", Type, " and OPERATION_CODE <= ", Operation, " and GEAR_CODE <= ", Gear  #TOGA coding (acquisition not used)
                  , " order by cruise6, stratum, tow, station", sep = '')
   sta.view <- sqlQuery(oc,q.sta) 
   temp <- str.size[match(sta.view$STRATUM, str.size$STRATUM),]

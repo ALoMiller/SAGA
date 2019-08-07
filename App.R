@@ -555,6 +555,15 @@ server = function(input, output, session){
     S<-input$S
     H<-input$H
     G<-input$G
+    #TOGA place holder - needs the UI boxes and input changes! 
+    Type<-1
+    Operation<-3
+    Gear<-2
+    Acquisition<-"X"
+    # Type<-input$Type
+    # Operation<-input$Operation
+    # Gear<-input$Gear
+    # Acquisition<-input$Acquisition
     
     #Expand to cover unsampled strata? For now this is automatic, but could be built into an reactive input
     Expansion=T
@@ -611,7 +620,11 @@ server = function(input, output, session){
                                                   do.BigLen=do.BigLen,
                                                   do.AlbLen=do.AlbLen,
                                                   big.len.calib=big.len.calib,
-                                                  S=S,H=H,G=G
+                                                  S=S,H=H,G=G,                                              
+                                                  Type=Type,
+                                                  Operation=Operation,
+                                                  Gear=Gear,
+                                                  Acquisition=Acquisition
                                                   )
           # #Progress bar
           withProgress(message=paste0('Calculating indices for ',yrs[i]),{
