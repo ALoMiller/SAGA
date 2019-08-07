@@ -575,14 +575,18 @@ server = function(input, output, session){
     H<-input$H
     G<-input$G
     #TOGA place holder - needs the UI boxes and input changes! 
-    # Type<-1
-    # Operation<-3
-    # Gear<-2
     Acquisition<-"X"
     Type<-input$Type
     Operation<-input$Operation
     Gear<-input$Gear
     # Acquisition<-input$Acquisition
+    #make sure we have values for all these codes (users might delete them potentially)
+    if(Type=="" | Type<8) Type=1
+    if(Operation=="" | Operation>4)  Operation<-3
+    if(Gear=="" | !Gear%in%c(1,2,4)) Gear<-2 #Gear codes only can be 1,2 or 4
+    if(S=="" | S>9) S<-1
+    if(H=="" | H>7) H<-3
+    if(G=="" | G>9) G<-6
     
     #Expand to cover unsampled strata? For now this is automatic, but could be built into an reactive input
     Expansion=T
