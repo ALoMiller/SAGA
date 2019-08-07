@@ -76,7 +76,8 @@ may be with a single tow in a given stratum that would cause an NA or something 
 perhaps a zero in a denominator somewhere, but I'm just guessing.
 
 
-
+From Dan:
+1.) Add a progress bar for the map download button (takes 3 sec or so and user might hot button again otherwise).
 
 
 
