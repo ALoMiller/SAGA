@@ -2,9 +2,11 @@ From Chris:
 1. There should be a TOGA criteria for the Bigelow years, similar to the SHG criteria for Albatross years. The default for 
 TOGA is 132X (where X means any value). When I looked at a Georges Bank yellowtail flounder run for the Bigelow years, 
 the shiny app had many more Tows than I did in my ADIOS run.
+     *TOGA codes added
 
 2. In the SHG boxes, I could not read the values that I entered. When I tried to just delete them for a Bigelow years run, 
 it caused the program to crash.
+     
 
 3. A plot of the numbers over time would be a useful default output.
       *Fixed
