@@ -6,7 +6,7 @@ the shiny app had many more Tows than I did in my ADIOS run.
 
 2. In the SHG boxes, I could not read the values that I entered. When I tried to just delete them for a Bigelow years run, 
 it caused the program to crash.
-     
+     *Fixed
 
 3. A plot of the numbers over time would be a useful default output.
       *Fixed
