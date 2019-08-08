@@ -143,7 +143,11 @@ ui <-
                               column(6,
                                      uiOutput("ui.age"))),
                             
-                            h5(strong("SHG values")),
+                            #h5(strong("SHG values (pre 2009) and TOGA values (after 2009)")),
+                            fluidRow(
+                              column(6,h5(strong("SHG values (pre 2009)"))),
+                              column(6,h5(strong("TOGA values (post 2008)")))
+                            ),  
                             fluidRow(
                               column(2,
                                      textInput("S", 
@@ -159,6 +163,21 @@ ui <-
                                      textInput("G", 
                                                label = HTML("Gear &le;"), 
                                                value = "6", 
+                                               width = "70px")),
+                              column(2,
+                                     textInput("Type", 
+                                               label = HTML("Type &le;"), 
+                                               value = "1", 
+                                               width = "70px")),
+                              column(2,
+                                     textInput("Operation", 
+                                               label = HTML("Oper. &le;"), 
+                                               value = "3", 
+                                               width = "70px")),
+                              column(2,
+                                     textInput("Gear", 
+                                               label = HTML("Gear &le;"), 
+                                               value = "2", 
                                                width = "70px"))
                             ),
                             fluidRow(
@@ -230,66 +249,68 @@ ui <-
                 ," those generated in SAGA or ADIOS! and should not be used directly in stock assessments. ADIOS! "
                 ," remains the preferred source for stock assessment inputs. ")),
               h2("Survey Indices"),
-              p(paste0("On this tab, the user selects the strata, species, season, years, lengths and ages for which they would like "
-                ," the application to develop indices from the NEFSC bottom trawl survey. Users can also choose to apply calibrations or different combinations "
-                ," of SHG codes. "),
-                h4("Select strata"),
-                p(paste0("Select one or more finfish strata from the window on the left (multiple strata may be selected by click and draggging the mouse or "
-                  ," by holding the CTRL button. Once the desired strata are selected "
-                  ," click the right arrow to add the strata to the window on the right. The strata in the window on the "
-                  ," right will be used to build survey indices. Strata may also be removed by selecting "
-                  ," them from the window on the right and clicking the left arrow. ")),
-                h4("Select species"),
-                p(paste0("Any of the species in this drop down menu are available. Click on a species and that species will show "
-                  ," in the 'select species' field indicating it has been selected. ")),
-                h4("Choose season"),
-                p(" Indices can be built from either the fall or spring NEFSC bottom trawl survey. Click the button corresponding to the desired season."),
-                h4("Select rance of years"),
-                p(" Use the slider to slect a range of years over which to build survey indices. "),
-                h4("Select range of length and age"),
-                p(paste0(" The sliders for length and age will automatically generate bounds based on the minimum and maximum"
-                  ," observed for the slected species. The range of lengths and ages can be further restricted by moving "
-                  ," the sliders. ")),
-                h4("SHG values"),
-                p(paste0(" SHG values are used to assess the quality of each survey tow. "
-                  ," S stands for station value. It is a code designating the type of tow (random vs. nonrandom, e.g.). An "
-                  ," S value of 1 indicates a random tow. "
-                  ," H stands for haul value. It designates the relative success of the haul. H <= 3 indicates a tow "
-                  ," that was probably not problematic enough to be unrepresentative of the stock in the area fished. "
-                  ," G stands for gear value. It designates the condition of the gear after each tow. G <= 6 indicates "
-                  ," problems not serious enough to make the tow unrepresentative. More detailed definitions can be found "
-                  , "in the Data Dictionary.")),
-                h4("Bigelow calibration"),
-                p(paste0(" Select this to include species and potentially length based (if available) calibrations based on the switch "
-                  ," from the RV Albatross to the RV Bigelow in 2009. ")),
-                h4("Gear/Door/Vessel calibration"),
-                p(paste0(" Check this box to include standard calibrations done to account for changes in vessel and/or gear over time.")),
-                h4("Run"),
-                p("When the inputs above are set, press the run button to develop your survey indices. " 
-                  ," A plot of the indices by year will appear when the application is finished. You can change the inputs and "
-                  ," hit the run button again to develop new indices based on the slected inputs."),
-                h4("Download .csv Data"),
-                p(paste0(" Click this buttom once the plot of the indices has been displayed to download the survey indices in .csv "
-                         ," format. The file will include indices at length, age and by strata, as well as the inputs selected.")),
-                p(paste0("Please note that the column at the far right of the indices at length is the total across the selected"
-                         ,"size and age range.")),
-                em(strong("*The overall indices are for all available sizes and ages.*")),
-                h4("Download Rdata"),
-                p(paste0(" Click this buttom once the plot of the indices has been displayed to download the survey indices as "
-                  ," an Rdata object. The resulting file can be read using load() in R. It will load an object called "
-                  ," SAGAr into memory that will contain "
-                  ," indices at length, age and by strata, as well as the inputs selected. Use str(SAGAr) to see the "
-                  ," data structures. ")),
-                br(),
-                br(),
-                
-                h2("Maps"),
-                p("The maps tab will generate a map based on the inputs from the Survey Indices tab."),
-                h4("Download html"),
-                p(paste0("This button will cause an html version of the map to be downloaded to the'Downloads' directory. "
-                  ," The html map can be opened in a browser and will remain interactive. A pdf of the map after "
-                  ," manipulation can be saved using the browsers 'File/Export to pdf' function. ")
-                ),
+
+              p(paste0("On this tab, the user selects the strata, species, seasons, years, lengths and ages for which they would like "
+              ," the application to develop indices from the NEFSC bottom trawl survey. Users can also choose to apply calibrations or different combinations "
+              ," of SHG codes. "),
+              h4("Select strata"),
+              p(paste0("Click or drag to select finfish strata from the window on the left. Once the desired strata are selected "
+                       ," click the right arrow to add the strata to the window on the right. The strata in the window on the "
+                       ," right will be used to build survey indices. Strata may also be removed by selecting "
+                       ," them from the window on the right and clicking the left arrow. ")),
+              h4("Select species"),
+              p(paste0("Any of the species in this drop down menu are available. Click on a species and that species will show "
+                       ," in the 'select species' field indicating it has been selected. ")),
+              h4("Choose season"),
+              p(" Indices can be built from either the fall or spring NEFSC bottom trawl survey. Click the button corresponding to the desired season"),
+              h4("Select rance of years"),
+              p(" Use the slider to slect a range of years over which to build survey indices. "),
+              h4("Select range of length and age"),
+              p(paste0(" The sliders for length and age will automatically generate bounds based on the minimum and maximum"
+                      ," observed for the slected species. The range of lengths and ages can be further restricted by moving "
+                      ," the sliders. Indices at age are developed by first generating an age at length matrix using a multinomial"
+                      ," fit to the observed ages at length. This matrix is then used to estimate an age for each length in the "
+                      ," data. After each length has been assigned an age, any ages the user has dropped using the slider are "
+                      ," removed and do not contribute to the totals for the indices at age. ")),
+              h4("SHG values"),
+              p(paste0(" SHG values are used to assess the quality of each survey tow. "
+                       ," S stands for station value. It is a code designating the type of tow (random vs. nonrandom, e.g.). An "
+                       ," S value of 1 indicates a random tow. "
+                       ," H stands for haul value. It designates the relative success of the haul. H <= 3 indicates a tow "
+                       ," that was probably not problematic enough to be unrepresentative of the stock in the area fished. "
+                       ," G stands for gear value. It designates the condition of the gear after each tow. G <= 6 indicates "
+                       ," problems not serious enough to make the tow unrepresentative. ")),
+              h4("Bigelow calibration"),
+              p(paste0(" Select this to include species and potentially length based (if available) calibrations based on the switch "
+                       ," from the RV Albatross to the RV Bigelow in 2009. ")),
+              h4("Gear/Door/Vessel calibration"),
+              p(paste0(" Check this box to include standard calibrations done to account for changes in vessel and/or gear over time.")),
+              h4("Run"),
+              p("When the inputs above are set, press the run button to develop your survey indices. " 
+                ," A plot of the indices by year will appear when the application is finished. You can change the inputs and "
+                ," hit the run button again to develop new indices based on the slected inputs."),
+              h4("Download .csv Data"),
+              p(paste0(" Click this buttom once the plot of the indices has been displayed to download the survey indices in .csv "
+                      ," format. The file will include indices at length, age and by strata, as well as the inputs selected.")),
+              p(paste0("Please note that the column at the far right of the indices at length is the total across the selected"
+                       ,"size and age range.")),
+              em(strong("*The overall indices are for all available sizes and ages.*")),
+              h4("Download Rdata"),
+              p(paste0(" Click this buttom once the plot of the indices has been displayed to download the survey indices as "
+                       ," an Rdata object. The resulting file can be read using load() in R. It will load an object called "
+                       ," SAGAr into memory that will contain "
+                       ," indices at length, age and by strata, as well as the inputs selected. Use str(SAGAr) to see the "
+                       ," data structures. ")),
+              br(),
+              br(),
+              
+              h2("Maps"),
+              p("The maps tab will generate a map based on the inputs from the Survey Indices tab."),
+              h4("Download html"),
+              p(paste0("This button will cause an html version of the map to be downloaded to the'Downloads' directory. "
+                       ," The html map can be opened in a browser and will remain interactive. A pdf of the map after "
+                       ," manipulation can be saved using the browsers 'File/Export to pdf' function. ")
+               ),
                 br(),
                 h4("Questions?"),
                 p("Contact:"),
@@ -495,7 +516,8 @@ server = function(input, output, session){
   All.out<-list()
   makeReactiveBinding("All.out")
   User.Inputs=list()  #don't need to make reactive (I think) because this is made of reactive values 
-
+  
+  
   observeEvent(input$runBtn,{ #if run button is pushed:
     
     print("Running")
@@ -555,6 +577,19 @@ server = function(input, output, session){
     S<-input$S
     H<-input$H
     G<-input$G
+    #TOGA place holder - needs the UI boxes and input changes! 
+    Acquisition<-"X"
+    Type<-input$Type
+    Operation<-input$Operation
+    Gear<-input$Gear
+    # Acquisition<-input$Acquisition
+    #make sure we have values for all these codes (users might delete them potentially)
+    if(Type=="" | Type<8) Type=1
+    if(Operation=="" | Operation>4)  Operation<-3
+    if(Gear=="" | !Gear%in%c(1,2,4)) Gear<-2 #Gear codes only can be 1,2 or 4
+    if(S=="" | S>9) S<-1
+    if(H=="" | H>7) H<-3
+    if(G=="" | G>9) G<-6
     
     #Expand to cover unsampled strata? For now this is automatic, but could be built into an reactive input
     Expansion=T
@@ -573,8 +608,8 @@ server = function(input, output, session){
     #if(input$minLength<len.view$MINL | input$maxLength>len.view$MAXL) print(c("New range: ",len.range))
     #print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season ])
     #print(survey.cruises$CRUISE6[survey.cruises$YEAR %in% seq(min(input$years),max(input$years))])
-    userInputs<<-list("species"=input$species,"strata"=strata.in,"years"=seq(min(input$years),max(input$years))
-                    ,"season"=input$season,"len.range"=len.range,"age.range"=age.range)
+    userInputs<<-list("species"=input$species,"strata"=strata.in,"years"=range(input$years)
+                    ,"season"=input$season,"len.range"=range(len.range),"age.range"=range(age.range))
     
     dput(userInputs,"user.Inputs") #for error trapping $$$$$$$$$$$$$$ REMOVE BEFORE POSTING $$$$$$$$$$$$$$$$$$$$$$
     
@@ -611,13 +646,17 @@ server = function(input, output, session){
                                                   do.BigLen=do.BigLen,
                                                   do.AlbLen=do.AlbLen,
                                                   big.len.calib=big.len.calib,
-                                                  S=S,H=H,G=G
+                                                  S=S,H=H,G=G,                                              
+                                                  Type=Type,
+                                                  Operation=Operation,
+                                                  Gear=Gear,
+                                                  Acquisition=Acquisition
                                                   )
-          #Progress bar
+          # #Progress bar
           withProgress(message=paste0('Calculating indices for ',yrs[i]),{
-            for (i in 1:10) {
+            for (j in 1:10) {
               incProgress(1/10)
-              
+
             }
           })
           
@@ -628,12 +667,18 @@ server = function(input, output, session){
           #Generate products for later download and plotting:
           #grab the Num,Wt and generate stratified means 
           goodRows=(x.out$out[,"m"]>0)
-          SMns=colSums(x.out$out[,c(4:5)][goodRows,]*
-                         x.out$out[,"M"][goodRows],na.rm=T)/sum(x.out$out[,"M"][goodRows])
+          #in case there is only one strata...
+          if(length(goodRows)==1) {SMns=(x.out$out[goodRows,c(4:5)]*
+                                                 x.out$out[goodRows,"M"])/sum(x.out$out[goodRows,"M"])
+          } else SMns=colSums(x.out$out[goodRows,c(4:5)]*
+                         x.out$out[goodRows,"M"],na.rm=T)/sum(x.out$out[goodRows,"M"])
           #Now get the variances
           goodRows=(x.out$out[,"m"]>1)
-          Svars=colSums(x.out$out[,c(6:7)][goodRows,]*
-                          (x.out$out[,"M"][goodRows]^2),na.rm=T)/sum(x.out$out[,"M"][goodRows])^2
+          if(length(goodRows)==1) {
+            Svars=(x.out$out[goodRows,c(6:7)]*
+                            (x.out$out[goodRows,"M"]^2))/sum(x.out$out[goodRows,"M"])^2
+          } else Svars=colSums(x.out$out[goodRows,c(6:7)]*
+                          (x.out$out[goodRows,"M"]^2),na.rm=T)/sum(x.out$out[goodRows,"M"])^2
           Ind.out<-rbind(Ind.out,c(Yeari,Tows
                       ,SMns,Svars)) 
           #The indices at length require similar manipulation
@@ -704,6 +749,12 @@ server = function(input, output, session){
           ,"NatLength"=IAL.out
           ,"VarNatLength"=VIAL.out
           ,"NatAge"=IAA.out
+          #,"Species"=userInputs$species
+          #,"Strata"=userInputs$strata
+          # ,"Years"=range(userInputs$years)
+          # ,"Season"=userInputs$season
+          # ,"Lengths"=range(userInputs$len.range)
+          # ,"Ages"=range(userInputs$age.range)
         )
         
         #plot the indices for something to look at after a successful run
@@ -722,14 +773,23 @@ server = function(input, output, session){
               #logvar=log(1+Ind.out$VarWt/(Ind.out$Wt)^2)
               #ci=data.frame(Ind.out,"lci"=Ind.out$Wt*logvar,"uci"=Ind.out$Wt/logvar )
               
-              print(ci)
+              #print(ci)
               
-              plot1<-ggplot(Ind.out, aes(x=Year, y=Wt)) +
-                   geom_line() +
-                   geom_ribbon(data=ci,aes(ymin=lci,ymax=uci),alpha=0.3) +
-                   theme_bw()
-    
-              print(plot1)
+              p1<-ggplot2::ggplot(Ind.out, aes(x=Year, y=Wt)) +
+                ggplot2::geom_line() +
+                ggplot2::geom_ribbon(data=ci,aes(ymin=lci,ymax=uci),alpha=0.3) +
+                ggplot2::theme_bw()
+              
+              ciNum=data.frame(Ind.out,"lci"=Ind.out$Num-1.96*(sqrt(Ind.out$VarNum))  #/Ind.out$Tows
+                            ,"uci"=Ind.out$Num+1.96*(sqrt(Ind.out$VarNum) ))  #/Ind.out$Tows
+              print(ciNum)
+              p2<-ggplot2::ggplot(Ind.out, aes(x=Year, y=Num)) +
+                ggplot2::geom_line() +
+                ggplot2::geom_ribbon(data=ciNum,aes(ymin=lci,ymax=uci),alpha=0.3) +
+                ggplot2::theme_bw()             
+              gridExtra::grid.arrange(p1,p2,ncol=1)
+              
+              #print(plot1)
             }
           })
         } else print("Invalid Stratum Selection: no observations of selected species in strata")
@@ -738,12 +798,12 @@ server = function(input, output, session){
       removeNotification(id="running")
     
       #show warnings in notification form and remove existing old notifications
-      if(minL<min(len.range)) {showNotification(paste0("Minimum observed size (", minL
-          ,") is less than the selected minimum size (", min(len.range),")" ),id="minLid",duration=NULL,type="warning")
-      } else removeNotification(id="minLid")
-      if(maxL>max(len.range)) {showNotification(paste0("Maximum observed size (", maxL
-          ,") is greater than the selected maximum size (", max(len.range),")" ),id="maxLid",duration=NULL,type="warning")
-      } else removeNotification(id="maxLid")
+      # if(minL<min(len.range)) {showNotification(paste0("Minimum observed size (", minL
+      #     ,") is less than the selected minimum size (", min(len.range),")" ),id="minLid",duration=NULL,type="warning")
+      # } else removeNotification(id="minLid")
+      # if(maxL>max(len.range)) {showNotification(paste0("Maximum observed size (", maxL
+      #     ,") is greater than the selected maximum size (", max(len.range),")" ),id="maxLid",duration=NULL,type="warning")
+      # } else removeNotification(id="maxLid")
       if(length(unUsedStrata)>0) {showNotification(paste0(" The following strata had no observed catch during the selected years: "
           ,unUsedStrata),duration=NULL,id="unusedid",type="warning")
       } else removeNotification(id="unusedid")
@@ -757,25 +817,25 @@ server = function(input, output, session){
         # CheckTows=apply(UnSampledStrata,1,FUN=function(x) paste(x,collapse=" , "))
         # CheckTows=paste(CheckTows,"\n",collapse="")
          CheckTows=shiny::HTML(paste0(" The following strata had no tows: ",paste0(UnSampledStrata2,collapse = " ")))
-         print((CheckTows))
+         #print((CheckTows))
          #shiny::tags$iframe(,scrolling="yes")
          showNotification2(CheckTows,duration=NULL,id="unTowedid",type="warning")
       } else removeNotification(id="unTowedid")   
     
-    }) #end observe "run" event
-  
-  #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  #                                       MAP section 
-  #______________________________________________________________________________________________________
-  observeEvent(input$runBtn,{ #if run button is pushed:
+  #   }) #end observe "run" event
+  # 
+  # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  # #                                       MAP section 
+  # #______________________________________________________________________________________________________
+  # observeEvent(input$runBtn,{ #if run button is pushed: #DRH not sure why we need 2 observe events??? 
     
-    get_data <- reactive({ #This is the get data button
+    get_data <- reactive({ #This is the get data function for the map
     #Get user inputs
     strata <- input$mychooser$right
     strata <- ifelse(nchar(strata)<5,paste0('0', strata),strata) #fix for when this is run twice - it adds another 0 and causes many errors
-    S<-input$S
-    H<-input$H
-    G<-input$G 
+    # S<-input$S #already done above 
+    # H<-input$H
+    # G<-input$G 
     #develop sql query for data using input criteria
     q.sta <- paste0("select id, cruise6, stratum, tow, station, shg, svvessel, svgear, est_year, est_month, est_day, ",
                     "substr(est_time,1,2) || substr(est_time,4,2) as time, towdur, dopdistb, dopdistw, avgdepth, ",
@@ -804,65 +864,69 @@ server = function(input, output, session){
     catch.data$bubbleSize <- 1+(catch.data$bubbleSize-1)/2     # rescaling the size of the points
     
     catch.data <- catch.data[catch.data$SEASON %in% input$season,]
-    #print(input$season)
+    print(names(catch.data))
     #print(table(catch.data$SEASON))  
     return(catch.data)
     
-  })
-  
-  foundational.map <- reactive({
+    }) #end of get_data
     
-    #builds the map from sql query and inputs
-    catch.data <- get_data()
-    # print(table(catch.data$SEASON)) 
-    leaflet() %>% # create a leaflet map widget
-      addProviderTiles("CartoDB.Positron") %>%
-      setView(-71, 40, 6) %>% # map location
-      addPolylines(data = Strata, color = "grey", weight = 1.5) %>%
-      addCircles(color='navy',catch.data$DECDEG_BEGLON[catch.data$EXPCATCHNUM>0],catch.data$DECDEG_BEGLAT[catch.data$EXPCATCHNUM>0],
-                 popup = paste("Station: ",catch.data$STATION.x[catch.data$EXPCATCHNUM>0], "<br>",
-                               "Stratum: ",catch.data$STRATUM.x[catch.data$EXPCATCHNUM>0], "<br>",
-                               "Tow: ",catch.data$TOW.x[catch.data$EXPCATCHNUM>0], "<br>",
-                               "Catch Wt (kg): ",catch.data$EXPCATCHWT[catch.data$EXPCATCHNUM>0], "<br>",
-                               "Catch Num: ",catch.data$EXPCATCHNUM[catch.data$EXPCATCHNUM>0], "<br>",
-                               "Season: ",catch.data$SEASON[catch.data$EXPCATCHNUM>0]),
-                 stroke = FALSE, fillOpacity = 0.4,
-                 radius = catch.data$bubbleSize[catch.data$EXPCATCHNUM>0]*5000)  
-  
-  })
-  
-  output$myMap = leaflet::renderLeaflet({
-    foundational.map() #This just calls the reactive map
-  })
+    foundational.map <- reactive({
+      #builds the map from sql query and inputs
+      catch.data <- get_data()
+      # print(table(catch.data$SEASON))
+      leaflet() %>% # create a leaflet map widget
+        addProviderTiles("CartoDB.Positron") %>%
+        setView(-71, 40, 6) %>% # map location
+        addPolylines(data = Strata, color = "grey", weight = 1.5) %>%
+        addCircles(color='navy',catch.data$DECDEG_BEGLON[catch.data$EXPCATCHNUM>0],catch.data$DECDEG_BEGLAT[catch.data$EXPCATCHNUM>0],
+                   popup = paste("Year: ",catch.data$EST_YEAR[catch.data$EXPCATCHNUM>0], "<br>",
+                                 "Station: ",catch.data$STATION.x[catch.data$EXPCATCHNUM>0], "<br>",
+                                 "Stratum: ",catch.data$STRATUM.x[catch.data$EXPCATCHNUM>0], "<br>",
+                                 "Tow: ",catch.data$TOW.x[catch.data$EXPCATCHNUM>0], "<br>",
+                                 "Catch Wt (kg): ",catch.data$EXPCATCHWT[catch.data$EXPCATCHNUM>0], "<br>",
+                                 "Catch Num: ",catch.data$EXPCATCHNUM[catch.data$EXPCATCHNUM>0], "<br>",
+                                 "Season: ",catch.data$SEASON[catch.data$EXPCATCHNUM>0]),
+                   stroke = FALSE, fillOpacity = 0.4,
+                   radius = catch.data$bubbleSize[catch.data$EXPCATCHNUM>0]*5000)
 
-  # store the current user-created version
-  # of the Leaflet map for download in 
-  # a reactive expression
-  user.created.map <- reactive({
-    # call the foundational Leaflet map
-    foundational.map() %>%
-      # store the view based on UI
-      setView( lng = input$map_center$lng
-               ,  lat = input$map_center$lat
-               , zoom = input$map_zoom
-      )
-  }) # end of creating user.created.map()
-  })
+    })
+    
+    #print(str(foundational.map()))
+    
+    output$myMap = leaflet::renderLeaflet({
+      foundational.map() #This just calls the reactive map
+    })
+  
+    # store the current user-created version
+    # of the Leaflet map for download in 
+    # a reactive expression
+    user.created.map <- reactive({
+      # call the foundational Leaflet map
+      foundational.map() %>%
+        # store the view based on UI
+        setView( lng = input$map_center$lng
+                 ,  lat = input$map_center$lat
+                 , zoom = input$map_zoom
+        )
+    }) # end of creating user.created.map()
+  #}) #end of observeEvent 
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   #                                       Output handling section 
   #______________________________________________________________________________________________________
   
+  
   getInputs=reactive({
-    if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
+    #if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
+    
   })
   
   output$downloadData <- downloadHandler(
-    filename = function() { paste(input$species, input$season, min(input$len1[1]), max(input$len1[2]), '.csv', sep='_') },
+    filename = function() { paste(input$species, input$season, input$len1[1], input$len1[2], '.csv', sep='_') },
     content = function(file) {
       
       #All.out is bound to the reactive variables and assigned from within the observe event environment with "<<-"
       #so it should be visible here.
-      
+      #print(str(All.out))
       #Huge pain in the ass to get this to print the names of the list objects... 
       write.list=function(x) {
         write.table(x,file,append=T,sep=",",row.names = F,col.names = F)
@@ -871,24 +935,24 @@ server = function(input, output, session){
       suppressWarnings(lapply(names(All.out),write.list))
       
       # if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
-      user.Inputs=getInputs()
-      write.list=function(x) {
-        write.table(x,file,append=T,sep=",",row.names = F,col.names = F)
-        write.table(data.frame(user.Inputs[[x]]),file,row.names = F,append= T,sep=',' ,col.names = F)
-      }
-      suppressWarnings(lapply(names(user.Inputs),write.list))
-     
+      # user.Inputs=getInputs()
+       write.list=function(x) {
+         write.table(x,file,append=T,sep=",",row.names = F,col.names = F)
+         write.table(data.frame(userInputs[[x]]),file,row.names = F,append= T,sep=',' ,col.names = F)
+       }
+       suppressWarnings(lapply(names(userInputs),write.list))
     }
   )
   
   output$downloadDataR <- downloadHandler(
-    filename = function() { paste(input$species, input$season, min(input$len1[1]), max(input$len1[2]), '.RData', sep='_') },
+    filename = function() { paste(input$species, input$season,input$len1[1],input$len1[2], '.RData', sep='_') },
     content = function(file) {
       #All.out should now be defined when the run button is hit. 
       #All.out=getOutput()
-      user.Inputs=getInputs()
+      #user.Inputs=getInputs()
       
-      SAGAr=list("Indices"=All.out,"UserInputs"=user.Inputs)
+      #SAGAr=list("Indices"=All.out,"UserInputs"=user.Inputs)
+      SAGAr=list("Indices"=All.out)
       save(SAGAr,file=file)
       
     }
@@ -907,7 +971,8 @@ server = function(input, output, session){
   # )  
   
   output$downloadMapHTML <- downloadHandler(
-    filename = function() { paste("SurveyMap",input$species, input$season, min(input$minLength), max(input$maxLength), '.html', sep='_') },
+    filename = function() { paste("SurveyMap",input$species, input$season
+                                  , input$len1[1],input$len1[2], '.html', sep='_') },
     content = function(file) {
       htmlwidgets::saveWidget(
          widget = foundational.map()
@@ -928,5 +993,7 @@ server = function(input, output, session){
   })
   # htmlwidgets::saveWidget(output$myMap, "temp.html", selfcontained = FALSE)
   #  webshot::webshot("temp.html", file = paste0(Sys.time(),"_map.png"))   
+   
+  }) #end of observeEvent  #DRH - I put everything inside the observe event and now the download handlers can see all the arguments
 }
 shinyApp(ui, server)
