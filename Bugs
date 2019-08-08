@@ -80,7 +80,7 @@ and annual index total.
 although in these cases I'm usually selecting strata that I typically wouldn't use for herring.  I suspect the problem 
 may be with a single tow in a given stratum that would cause an NA or something when trying to calculate a variance or 
 perhaps a zero in a denominator somewhere, but I'm just guessing.
-
+            *Maybe fixed? I pulled out some strata that weren't in UNION_FSCS_SVSTA which I think was causing it...
 
 From Dan:
 1.) Add a progress bar for the map download button (takes 3 sec or so and user might hot button again otherwise).
