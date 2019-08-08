@@ -21,6 +21,10 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                                               S=1,
                                               H=3,
                                               G=6,
+                                              Type=1,
+                                              Operation=3,
+                                              Gear=2,
+                                              Acquisition="X",
                                               species=NULL,
                                               spring.cruises=NULL,
                                               fall.cruises=NULL,
@@ -40,6 +44,10 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   str.size$ExpAreas <- str.size$STRATUM_AREA/tow_swept_area
   print(survey)
   
+  if(as.integer(substr(paste(survey),1,4))<2009) { #TOGA is not needed for pre Bigelow years
+    TowCoding=paste0( " and STATYPE <= ",S," and HAUL <= ",H," and GEARCOND <= ", G) 
+  } else TowCoding=paste0(" and TYPE_CODE <= ", Type, " and OPERATION_CODE <= ", Operation, " and GEAR_CODE <= ", Gear) 
+  
   #STATION location data 
   q.sta <- paste("select cruise6, stratum, tow, station, shg, svvessel, svgear, est_year, est_month, est_day, ",
                  "substr(est_time,1,2) || substr(est_time,4,2) as time, towdur, dopdistb, dopdistw, avgdepth, ",
@@ -49,9 +57,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                  #this would only get one year of survey data! option to fix below
                  #"where cruise6 in ('", paste(survey, collapse = "','"), "')"
                  , " and STRATUM IN ('", paste(strata, collapse = "','"), "')"
-                 , " and STATYPE <= ",S," and HAUL <= ",H," and GEARCOND <= ", G #changing this to allow user specified SHG choices
-                 #" and shg<= '136' order by cruise6, stratum, tow, station", sep = '')
-                 , " order by cruise6, stratum, tow, station", sep = '')
+                 , TowCoding, " order by cruise6, stratum, tow, station", sep = '')
   sta.view <- sqlQuery(oc,q.sta) 
   temp <- str.size[match(sta.view$STRATUM, str.size$STRATUM),]
   sta.view <- cbind(sta.view, temp[,-1])
@@ -142,12 +148,12 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   S.n.w.stratum <- t(sapply(str.size$STRATUM, 
                             function(x) var(catch.data[which(catch.data$STRATUM== x),c('EXPCATCHNUM','EXPCATCHWT')])))
   #We only need the variances so drop the covariance cols
-  S.n.w.stratum <- S.n.w.stratum[,c(1,4)] #NEED TO CHECK THESE AGAINST KNOWN VARIANCES!!!
+  S.n.w.stratum <- S.n.w.stratum[,c(1,4)] 
   
   #weighting factor for each stratum (area of stratum/area sampled) * effort
   N.W.hat.stratum <- M * samp.tot.n.w/m
   #variance weighting factor
-  Vhat.N.W.hat.stratum <- M^2 * (1 - m/M) * S.n.w.stratum/m
+  Vhat.N.W.hat.stratum <- matrix((M^2 * (1 - m/M) * S.n.w.stratum/m),ncol=2)
   n.strata <- length(M)
   
   if(do.length){
@@ -186,6 +192,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     #result is a matrix with a row for each stratum and a col for each length
     samp.tot.nal <- sapply(lengths, function(x) sapply(str.size$STRATUM
                     , function(y) sum(len.data$EXPNUMLEN[len.data$STRATUM == y & len.data$LENGTH == x],na.rm = TRUE)))
+    samp.tot.nal<-matrix(samp.tot.nal,nrow=length(strata))
     rownames(samp.tot.nal) <- as.character(strata)
     colnames(samp.tot.nal) <- as.character(lengths)
     #print(head(len.data))
@@ -225,6 +232,9 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     
     if(do.age){
       #AGE
+      species <- read.csv('files/speciesTable.csv')
+      BigRange=(species[which(species$SVSPP==spp),c("MINA","MAXA")]) #need this for the multinomial fit
+      BigAge=seq(as.numeric(BigRange[1]),as.numeric(BigRange[2]))
       q.age <- paste("select  cruise6, stratum, tow, station, sex, length, age, indwt, maturity from svdbs.union_fscs_svbio ",
                      " where cruise6 = ", survey, " and STRATUM IN ('", paste(strata, collapse = "','"), "')",
                      " and svspp = ", spp, " and age is not null order by cruise6, stratum, tow, station", sep = '')
@@ -271,7 +281,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         
         #Can only fit this if there is more than one age!
         if(length(unique(WtLenEx$AGE[!is.na(WtLenEx$AGE)]))>1) {
-          mult.props<- get.mult.props(big.len=(lengths),big.age=seq(min(ages),max(ages)))
+          #The multnomial should fit to all the ages in the data and then clip to the user specified range afterwards
+          mult.props<- get.mult.props(big.len=(lengths),big.age=BigAge)
               #,ref.age = 3) #don't think we need this
         } else { #if there is only one age then you have 100% in one row
           p <- matrix(0, nrow=length(lengths), ncol=(max(ages)+1))
@@ -288,6 +299,11 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         Naa.hat.stratum=matrix(as.numeric(paste(Naa.hat.stratum)),nrow=nrow(Naa.hat.stratum))
         #Naa.hat.stratum=rbind(Naa.hat.stratum,"Total"=colSums(Naa.hat.stratum)) #add a row for the total - this is done in App.R
         Naa.hat.stratum=data.frame(strata,Naa.hat.stratum,stringsAsFactors = F) #make sure the strata names are preserved
+        #Now clip out the ages that the user did not want
+        #print(ages)
+        #print((Naa.hat.stratum))
+        Naa.hat.stratum[,2:(length(ages)+1)]=Naa.hat.stratum[,(which(BigAge%in%ages)+1)]
+        Naa.hat.stratum=Naa.hat.stratum[,1:(length(ages)+1)]
         names(Naa.hat.stratum)=c("Stratum",paste0("Age",ages)) #rename cols
       } else { #No data condition
           Naa.hat.stratum=c();
@@ -299,6 +315,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   }
   
   #data.frame of stratified indices and variances 
+  dimnames(Vhat.N.W.hat.stratum)[[1]]=NULL
+  dimnames(Vhat.N.W.hat.stratum)[[2]]=c("VARNUM", "VARWT")
   out <- cbind(stratum = str.size$STRATUM, M = M, m = m, mean.n.w.per.tow = N.W.hat.stratum/M
                , V.mean.n.w.per.tow = Vhat.N.W.hat.stratum/(M^2))
   out <- list(out = out)
@@ -311,10 +329,12 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   
   #warning(paste0("Some strata for survey have zero tows, will extrapolate data to these areas"))
   ZeroTows=c()
-  if(any(out$out[,"m"] ==0)) ZeroTows=out$out[which(out$out[,"m"]>0),"stratum"] 
+  if(any(out$out[,"m"] == 0)) ZeroTows=out$out[which(out$out[,"m"]==0),"stratum"] 
   out$expand = sum(M)/sum(M[which(m>0)]) #=1 if all strata are sampled
   #report warnings
   out$warnings=list(LengthRange=Lrange,UnusedStrata=out$out[,"stratum"][out$out[,"EXPCATCHNUM"]==0.0],UnsampledStrata=ZeroTows)
+  #print(out$out)
+  
   
   return(out)
 }
