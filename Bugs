@@ -65,7 +65,9 @@ From Jon:
 16. Certain selections of strata cause the app to break (slecting from bottom upwards seems to do it).[see 19 below]
 
 17. Stratum 03920 is listed twice in chooser - should check all strata to make sure they are legit and in data. 
-
+            *Fixed - also removed 03908 "01351" "01352" "03480" "03570" "03620" "03670" "03700" 
+            because they don't appear in UNION_FSCS_SVSTA (and may be responsible for the error in 19) see checkStrata.R
+    
 18. Limiting the ages worked great for me and I had no crashes.  For herring, we don't use the age-1 indices because
 they seem to just be noise.  So when I limited the age range to begin at age-2, I got the indices at age and the 
 annual sums only over the age ranges I wanted.  I would recommend, however, that you check to make sure that you do 
