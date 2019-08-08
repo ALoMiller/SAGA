@@ -861,7 +861,7 @@ server = function(input, output, session){
     catch.data$bubbleSize <- 1+(catch.data$bubbleSize-1)/2     # rescaling the size of the points
     
     catch.data <- catch.data[catch.data$SEASON %in% input$season,]
-    #print(input$season)
+    print(names(catch.data))
     #print(table(catch.data$SEASON))  
     return(catch.data)
     
@@ -876,7 +876,8 @@ server = function(input, output, session){
         setView(-71, 40, 6) %>% # map location
         addPolylines(data = Strata, color = "grey", weight = 1.5) %>%
         addCircles(color='navy',catch.data$DECDEG_BEGLON[catch.data$EXPCATCHNUM>0],catch.data$DECDEG_BEGLAT[catch.data$EXPCATCHNUM>0],
-                   popup = paste("Station: ",catch.data$STATION.x[catch.data$EXPCATCHNUM>0], "<br>",
+                   popup = paste("Year: ",catch.data$EST_YEAR[catch.data$EXPCATCHNUM>0], "<br>",
+                                 "Station: ",catch.data$STATION.x[catch.data$EXPCATCHNUM>0], "<br>",
                                  "Stratum: ",catch.data$STRATUM.x[catch.data$EXPCATCHNUM>0], "<br>",
                                  "Tow: ",catch.data$TOW.x[catch.data$EXPCATCHNUM>0], "<br>",
                                  "Catch Wt (kg): ",catch.data$EXPCATCHWT[catch.data$EXPCATCHNUM>0], "<br>",
