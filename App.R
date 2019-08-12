@@ -971,7 +971,9 @@ server = function(input, output, session){
   # )  
   
   output$downloadMapHTML <- downloadHandler(
-    filename = function() { paste("SurveyMap",input$species, input$season
+    filename = function() { 
+      showNotification("Downloading map...",duration=5,id="downloadmap",type="message")
+      paste("SurveyMap",input$species, input$season
                                   , input$len1[1],input$len1[2], '.html', sep='_') },
     content = function(file) {
       htmlwidgets::saveWidget(
@@ -980,6 +982,7 @@ server = function(input, output, session){
        )
       
     }
+    
   )
   
    output$text <- renderUI({
