@@ -85,6 +85,25 @@ perhaps a zero in a denominator somewhere, but I'm just guessing.
 From Dan:
 1.) Add a progress bar for the map download button (takes 3 sec or so and user might hot button again otherwise).
 
+From Mark:
+1. Compilation of the indices by sex, following the steps used in SAGA (basically uses the info in the ALK to assign 
+proportions by sex to the expanded catch at length).
+
+2. Add the MADMF strata so we can use it for the Mass SVs.
+
+From Chuck:
+
+1. Add a way to paste your strata in, or perhaps read a csv or text file. Attached are the strata for butterfish. 
+There are a number of gaps that make selecting strata somewhat labor intensive and (more importantly) prone to mistakes. 
+For example, the inshore (03 prefix) strata are every third one (but not always).
+
+2. Add wolffish & ocean pout to the list of available species.
+
+3. (Not sure this is possible) Add functionality to save settings when you lose connection to the server. 
+I notice this when the VPN drops while teleworking. I can foresee this as an issue during an assessment meeting in the 
+Clark conference room while connected to Seal Tank. 
+
+
 
 
 
