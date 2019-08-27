@@ -96,6 +96,7 @@ From Chuck:
 1. Add a way to paste your strata in, or perhaps read a csv or text file. Attached are the strata for butterfish. 
 There are a number of gaps that make selecting strata somewhat labor intensive and (more importantly) prone to mistakes. 
 For example, the inshore (03 prefix) strata are every third one (but not always).
+    *I don't have the same problem with 03 being every third one - maybe it was opened in a small window?
 
 2. Add wolffish & ocean pout to the list of available species.
 
