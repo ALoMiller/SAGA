@@ -136,6 +136,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       }
     }
   }
+  return(catch.data)
 
   #Extract the number of stations in each selected stratum in the selected years
   m <- sapply(str.size$STRATUM, function(x) sum(sta.view$STRATUM == x))
