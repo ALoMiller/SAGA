@@ -32,8 +32,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                                               do.AlbLen=F,
                                               big.len.calib=NULL,
                                               boot=F
-                                              )
-  {
+)
+{
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   # *********** sql queries ***************#
   #Stratum information required to stratify (stratum area, etc)
@@ -53,7 +53,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                  "substr(est_time,1,2) || substr(est_time,4,2) as time, towdur, dopdistb, dopdistw, avgdepth, ",
                  " statype, haul, gearcond, ",
                  "area, bottemp, beglat, beglon from svdbs.union_fscs_svsta ",
-                  "where cruise6 = ", survey
+                 "where cruise6 = ", survey
                  #this would only get one year of survey data! option to fix below
                  #"where cruise6 in ('", paste(survey, collapse = "','"), "')"
                  , " and STRATUM IN ('", paste(strata, collapse = "','"), "')"
@@ -136,8 +136,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       }
     }
   }
-  return(catch.data)
-
+  
   #Extract the number of stations in each selected stratum in the selected years
   m <- sapply(str.size$STRATUM, function(x) sum(sta.view$STRATUM == x))
   M <- str.size$ExpArea #This is the proportional relationship between the area of the stratum and area of a tow...
@@ -165,7 +164,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     len.view <- sqlQuery(oc,q.len)
     len.data <- merge(catch.data, len.view, by = c('CRUISE6','STRATUM','TOW','STATION','CATCHSEX'),  all.x=T, all.y = F)
     len.data$EXPNUMLEN=ifelse(is.na(len.data$EXPNUMLEN),0,len.data$EXPNUMLEN)
-
+    
     #cal.Nal.hat.stratum = Nal.hat.stratum
     for(i in 1:length(lengths))
     {
@@ -176,7 +175,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] / big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
       }
     }
-
+    
     #Build in a place holder for bootstrapping length data
     if(boot){
       boot.lendat = boot.lendat.fn(len.data)
@@ -192,7 +191,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     #nested sapply! This sums the numbers at length in each stratum over each of the user specified lengths
     #result is a matrix with a row for each stratum and a col for each length
     samp.tot.nal <- sapply(lengths, function(x) sapply(str.size$STRATUM
-                    , function(y) sum(len.data$EXPNUMLEN[len.data$STRATUM == y & len.data$LENGTH == x],na.rm = TRUE)))
+                                                       , function(y) sum(len.data$EXPNUMLEN[len.data$STRATUM == y & len.data$LENGTH == x],na.rm = TRUE)))
     samp.tot.nal<-matrix(samp.tot.nal,nrow=length(strata))
     rownames(samp.tot.nal) <- as.character(strata)
     colnames(samp.tot.nal) <- as.character(lengths)
@@ -284,7 +283,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         if(length(unique(WtLenEx$AGE[!is.na(WtLenEx$AGE)]))>1) {
           #The multnomial should fit to all the ages in the data and then clip to the user specified range afterwards
           mult.props<- get.mult.props(big.len=(lengths),big.age=BigAge)
-              #,ref.age = 3) #don't think we need this
+          #,ref.age = 3) #don't think we need this
         } else { #if there is only one age then you have 100% in one row
           p <- matrix(0, nrow=length(lengths), ncol=(max(ages)+1))
           p[min(WtLenEx$LENGTH[!is.na(WtLenEx$AGE)]):max(WtLenEx$LENGTH[!is.na(WtLenEx$AGE)])
@@ -307,10 +306,10 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         Naa.hat.stratum=Naa.hat.stratum[,1:(length(ages)+1)]
         names(Naa.hat.stratum)=c("Stratum",paste0("Age",ages)) #rename cols
       } else { #No data condition
-          Naa.hat.stratum=c();
-          Naa.hat.stratum=data.frame(strata,matrix(NA,nrow=length(strata),ncol=(max(ages)+1)),stringsAsFactors = F)
-          names(Naa.hat.stratum)=c("Stratum",paste0("Age",ages)) #rename cols
-        }
+        Naa.hat.stratum=c();
+        Naa.hat.stratum=data.frame(strata,matrix(NA,nrow=length(strata),ncol=(max(ages)+1)),stringsAsFactors = F)
+        names(Naa.hat.stratum)=c("Stratum",paste0("Age",ages)) #rename cols
+      }
       
     }
   }
@@ -374,7 +373,7 @@ showNotification2 <- function (ui, action = NULL, duration = 5, closeButton = TR
                                id = NULL, type = c("default", "message", "warning", "error"), 
                                session = shiny:::getDefaultReactiveDomain()) {
   if (is.null(id)) 
-  id <- shiny:::createUniqueId(8)
+    id <- shiny:::createUniqueId(8)
   res <- shiny:::processDeps(HTML(ui), session)
   actionRes <- shiny:::processDeps(action, session)
   #print(res$html)
@@ -384,4 +383,3 @@ showNotification2 <- function (ui, action = NULL, duration = 5, closeButton = TR
   id
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
