@@ -7,13 +7,13 @@ library(shinydashboard)
 library(webshot)
 library(htmlwidgets)
 library(ggplot2)
-library(dplyr)
 #library(sf)
 #library(mapview)
 
 #CHANGE TO YOUR PASSWORD AND USER NAME!!!!! **************************************************
 Sys.setenv(ORACLE_HOME="/ora1/app/oracle/product/11.2.0/dbhome_1")
-#sole <- odbcConnect(dsn="sole", uid="xxxxx", pwd="xxxxxxx", believeNRows=FALSE)
+
+sole <- odbcConnect(dsn="sole", uid="XXXX", pwd="XXXX", believeNRows=FALSE)
 #webshot::install_phantomjs()
 
 source("chooser.R") 

@@ -31,7 +31,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                                               do.BigLen=F,
                                               do.AlbLen=F,
                                               big.len.calib=NULL,
-                                              boot=F
+                                              boot=F,
+                                              swept_area = TRUE
 )
 {
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -41,7 +42,6 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   stratum.sizes.q <- paste("select stratum, stratum_area, strgrp_desc, stratum_name from svdbs.svmstrata where STRATUM IN ('", 
                            paste(strata, collapse = "','"), "')"," order by stratum", sep = '')
   str.size <- sqlQuery(oc,stratum.sizes.q)
-  str.size$ExpAreas <- str.size$STRATUM_AREA/tow_swept_area
   print(survey)
   
   if(as.integer(substr(paste(survey),1,4))<2009) { #TOGA is not needed for pre Bigelow years
@@ -64,8 +64,15 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   
   #Add station specific swept area
   q.sta.sweptarea <- paste0("select cruise6, station, area_swept_wings_mean_km2 from svdbs.tow_evaluation ",
-                                                                  "where cruise6 = ", survey)
-  sta.sweptarea <- sqlQuery(sole,q.sta.sweptarea)
+                            "where cruise6 = ", survey)
+  sta.sweptarea <- sqlQuery(oc,q.sta.sweptarea)
+  temp2 <- sta.sweptarea[match(sta.view$STATION,sta.sweptarea$STATION),]
+  tow_swept_area = ifelse(sta.view$SVVESSEL[1]=='HB', 0.007, 0.01) #changes for smaller swept area during Bigelow years
+  sta.view <- cbind(sta.view, AREA_SWEPT_WINGS_MEAN_KM2 = temp2[,c(-1,-2)])
+  sta.view$AREA_SWEPT_WINGS_MEAN_NM2 <- sta.view$AREA_SWEPT_WINGS_MEAN_KM2*0.539957^2
+  sta.view$AREA_SWEPT_WINGS_MEAN_NM2[which(is.na(sta.view$AREA_SWEPT_WINGS_MEAN_NM2))] <- tow_swept_area
+  sta.view$SWEPT_AREA_RATIO <- tow_swept_area/sta.view$AREA_SWEPT_WINGS_MEAN_NM2
+  str.size$ExpAreas <- str.size$STRATUM_AREA/tow_swept_area #effectively the total number of possible tows in a stratum
   
   #CATCH data
   q.cat <- paste("select cruise6, stratum, tow, station, svspp, catchsex, expcatchwt, expcatchnum from svdbs.union_fscs_svcat ",
@@ -114,7 +121,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         catch.data$EXPCATCHWT[catch.data$EST_YEAR>2008] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR>2008]/species$SPRWT[species$SVSPP==spp]
       }
     }
-  } 
+  }
   #Albatross conversion to Bigelow series
   if(do.Bigelow){
     if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
@@ -141,26 +148,45 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       }
     }
   }
+  #Account for new swept area conversions
+  catch.data$EXPCATCHNUM_ADJ = catch.data$EXPCATCHNUM * catch.data$SWEPT_AREA_RATIO
+  catch.data$EXPCATCHWT_ADJ = catch.data$EXPCATCHWT * catch.data$SWEPT_AREA_RATIO
   
   #Extract the number of stations in each selected stratum in the selected years
   m <- sapply(str.size$STRATUM, function(x) sum(sta.view$STRATUM == x))
   M <- str.size$ExpArea #This is the proportional relationship between the area of the stratum and area of a tow...
   #This is a sum of the catch over each stratum
-  
-  samp.tot.n.w <- t(sapply(str.size$STRATUM, 
-                           function(x) apply(catch.data[which(catch.data$STRATUM== x),c('EXPCATCHNUM','EXPCATCHWT')],2,sum)))
-  #variance covariance matrix of each catch variable (why do we need covariance?)
-  S.n.w.stratum <- t(sapply(str.size$STRATUM, 
-                            function(x) var(catch.data[which(catch.data$STRATUM== x),c('EXPCATCHNUM','EXPCATCHWT')])))
-  #We only need the variances so drop the covariance cols
-  S.n.w.stratum <- S.n.w.stratum[,c(1,4)] 
-  
-  #weighting factor for each stratum (area of stratum/area sampled) * effort
-  N.W.hat.stratum <- M * samp.tot.n.w/m
-  #variance weighting factor
-  Vhat.N.W.hat.stratum <- matrix((M^2 * (1 - m/M) * S.n.w.stratum/m),ncol=2)
-  n.strata <- length(M)
-  
+  if(!swept_area){    
+    samp.tot.n.w <- t(sapply(str.size$STRATUM, 
+                             function(x) apply(catch.data[which(catch.data$STRATUM== x),c('EXPCATCHNUM','EXPCATCHWT')],2,sum)))
+    #variance covariance matrix of each catch variable (why do we need covariance?)
+    S.n.w.stratum <- t(sapply(str.size$STRATUM, 
+                              function(x) var(catch.data[which(catch.data$STRATUM== x),c('EXPCATCHNUM','EXPCATCHWT')])))
+    #We only need the variances so drop the covariance cols
+    S.n.w.stratum <- S.n.w.stratum[,c(1,4)] 
+    
+    #weighting factor for each stratum (area of stratum/area sampled) * effort
+    N.W.hat.stratum <- M * samp.tot.n.w/m
+    #variance weighting factor
+    Vhat.N.W.hat.stratum <- matrix((M^2 * (1 - m/M) * S.n.w.stratum/m),ncol=2)
+    n.strata <- length(M)
+  }
+  if(swept_area){  
+    #alternative for new swept areas
+    samp.tot.n.w <- t(sapply(str.size$STRATUM, 
+                             function(x) apply(catch.data[which(catch.data$STRATUM== x),c('EXPCATCHNUM_ADJ','EXPCATCHWT_ADJ')],2,sum)))
+    #variance covariance matrix of each catch variable (why do we need covariance?)
+    S.n.w.stratum <- t(sapply(str.size$STRATUM, 
+                              function(x) var(catch.data[which(catch.data$STRATUM== x),c('EXPCATCHNUM_ADJ','EXPCATCHWT_ADJ')])))
+    #We only need the variances so drop the covariance cols
+    S.n.w.stratum <- S.n.w.stratum[,c(1,4)] 
+    
+    #weighting factor for each stratum (area of stratum/area sampled) * effort
+    N.W.hat.stratum <- M * samp.tot.n.w/m
+    #variance weighting factor
+    Vhat.N.W.hat.stratum <- matrix((M^2 * (1 - m/M) * S.n.w.stratum/m),ncol=2)
+    n.strata <- length(M)
+  }
   if(do.length){
     #LENGTH from sql
     q.len <- paste("select  cruise6, stratum, tow, station, catchsex, length, expnumlen from svdbs.union_fscs_svlen " ,
@@ -169,18 +195,42 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     len.view <- sqlQuery(oc,q.len)
     len.data <- merge(catch.data, len.view, by = c('CRUISE6','STRATUM','TOW','STATION','CATCHSEX'),  all.x=T, all.y = F)
     len.data$EXPNUMLEN=ifelse(is.na(len.data$EXPNUMLEN),0,len.data$EXPNUMLEN)
+    len.data$EXPNUMLEN_ADJ = len.data$EXPNUMLEN * len.data$SWEPT_AREA_RATIO
     
     #cal.Nal.hat.stratum = Nal.hat.stratum
-    for(i in 1:length(lengths))
-    {
-      if(do.Bigelow & do.BigLen & catch.data$EST_YEAR[1]<2009){ 
-        len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] * big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
-      }
-      if(do.Albatross & do.AlbLen & catch.data$EST_YEAR[1]>2008){ 
-        len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] / big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
+    if(!swept_area){  
+      for(i in 1:length(lengths))
+      {
+        if(do.Bigelow & do.BigLen & catch.data$EST_YEAR[1]<2009){ 
+          len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] * big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
+        }
+        if(do.Albatross & do.AlbLen & catch.data$EST_YEAR[1]>2008){ 
+          len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] / big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
+        }
       }
     }
-    
+    if(!swept_area){  
+      for(i in 1:length(lengths))
+      {
+        if(do.Bigelow & do.BigLen & catch.data$EST_YEAR[1]<2009){ 
+          len.data$EXPNUMLEN_ADJ[which(len.data$LENGTH == lengths[i])] <- len.data$EXPNUMLEN_ADJ[which(len.data$LENGTH == lengths[i])] * big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
+        }
+        if(do.Albatross & do.AlbLen & catch.data$EST_YEAR[1]>2008){ 
+          len.data$EXPNUMLEN_ADJ[which(len.data$LENGTH == lengths[i])] <- len.data$EXPNUMLEN_ADJ[which(len.data$LENGTH == lengths[i])] / big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
+        }
+      }
+    }
+    if(swept_area){  
+      for(i in 1:length(lengths))
+      {
+        if(do.Bigelow & do.BigLen & catch.data$EST_YEAR[1]<2009){ 
+          len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] * big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
+        }
+        if(do.Albatross & do.AlbLen & catch.data$EST_YEAR[1]>2008){ 
+          len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] / big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
+        }
+      }
+    }
     #Build in a place holder for bootstrapping length data
     if(boot){
       boot.lendat = boot.lendat.fn(len.data)
@@ -195,8 +245,14 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     
     #nested sapply! This sums the numbers at length in each stratum over each of the user specified lengths
     #result is a matrix with a row for each stratum and a col for each length
-    samp.tot.nal <- sapply(lengths, function(x) sapply(str.size$STRATUM
-                                                       , function(y) sum(len.data$EXPNUMLEN[len.data$STRATUM == y & len.data$LENGTH == x],na.rm = TRUE)))
+    if(!swept_area){  
+      samp.tot.nal <- sapply(lengths, function(x) sapply(str.size$STRATUM
+                                                         , function(y) sum(len.data$EXPNUMLEN[len.data$STRATUM == y & len.data$LENGTH == x],na.rm = TRUE)))
+    }
+    if(swept_area){  
+      samp.tot.nal <- sapply(lengths, function(x) sapply(str.size$STRATUM
+                                                         , function(y) sum(len.data$EXPNUMLEN_ADJ[len.data$STRATUM == y & len.data$LENGTH == x],na.rm = TRUE)))
+    }
     samp.tot.nal<-matrix(samp.tot.nal,nrow=length(strata))
     rownames(samp.tot.nal) <- as.character(strata)
     colnames(samp.tot.nal) <- as.character(lengths)
@@ -215,7 +271,12 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
           if(sum(x.dat$TOW == y)){ #I think this has to always be T, unless x.dat$TOW is a factor or something? 
             #generate a sum of the number of fish at each length from the user specified lengths this will also generate 0s for 
             #empty lengths
-            nal.tow <- sapply(lengths, function(z) sum(x.dat$EXPNUMLEN[which(x.dat$LENGTH == z & x.dat$TOW == y)], na.rm = TRUE))
+            if(swept_area){
+              nal.tow <- sapply(lengths, function(z) sum(x.dat$EXPNUMLEN_ADJ[which(x.dat$LENGTH == z & x.dat$TOW == y)], na.rm = TRUE))
+            }
+            if(!swept_area){
+              nal.tow <- sapply(lengths, function(z) sum(x.dat$EXPNUMLEN[which(x.dat$LENGTH == z & x.dat$TOW == y)], na.rm = TRUE))
+            }
           }
           else nal.tow <- rep(0,length(lengths)) #fill with zeroes
           return(nal.tow)
@@ -337,7 +398,12 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   if(any(out$out[,"m"] == 0)) ZeroTows=out$out[which(out$out[,"m"]==0),"stratum"] 
   out$expand = sum(M)/sum(M[which(m>0)]) #=1 if all strata are sampled
   #report warnings
-  out$warnings=list(LengthRange=Lrange,UnusedStrata=out$out[,"stratum"][out$out[,"EXPCATCHNUM"]==0.0],UnsampledStrata=ZeroTows)
+  if(swept_area){
+    out$warnings=list(LengthRange=Lrange,UnusedStrata=out$out[,"stratum"][out$out[,"EXPCATCHNUM_ADJ"]==0.0],UnsampledStrata=ZeroTows)
+  }
+  if(!swept_area){
+    out$warnings=list(LengthRange=Lrange,UnusedStrata=out$out[,"stratum"][out$out[,"EXPCATCHNUM"]==0.0],UnsampledStrata=ZeroTows)
+  }
   #print(out$out)
   
   
@@ -388,4 +454,5 @@ showNotification2 <- function (ui, action = NULL, duration = 5, closeButton = TR
   id
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
