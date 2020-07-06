@@ -7,6 +7,7 @@ library(shinydashboard)
 library(webshot)
 library(htmlwidgets)
 library(ggplot2)
+library(dplyr)
 #library(sf)
 #library(mapview)
 
@@ -192,6 +193,9 @@ ui <-
                                                  c("none", "specify values"),
                                                  selected = "none"),
                                      uiOutput("ui.gdv.calib"))),
+                            fluidRow(
+                              checkboxInput("swept_area", label = strong("Use measured swept area"), value = TRUE)
+                            ),
                             
                             fluidRow(
                               column(3,
@@ -590,6 +594,9 @@ server = function(input, output, session){
     if(S=="" | S>9) S<-1
     if(H=="" | H>7) H<-3
     if(G=="" | G>9) G<-6
+    #swept area
+    swept_area <- input$swept_area
+    
     
     #Expand to cover unsampled strata? For now this is automatic, but could be built into an reactive input
     Expansion=T
@@ -650,7 +657,8 @@ server = function(input, output, session){
                                                   Type=Type,
                                                   Operation=Operation,
                                                   Gear=Gear,
-                                                  Acquisition=Acquisition
+                                                  Acquisition=Acquisition,
+                                                  swept_area=swept_area
         )
         # #Progress bar
         withProgress(message=paste0('Calculating indices for ',yrs[i]),{

@@ -62,6 +62,11 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   temp <- str.size[match(sta.view$STRATUM, str.size$STRATUM),]
   sta.view <- cbind(sta.view, temp[,-1])
   
+  #Add station specific swept area
+  q.sta.sweptarea <- paste0("select cruise6, station, area_swept_wings_mean_km2 from svdbs.tow_evaluation ",
+                                                                  "where cruise6 = ", survey)
+  sta.sweptarea <- sqlQuery(sole,q.sta.sweptarea)
+  
   #CATCH data
   q.cat <- paste("select cruise6, stratum, tow, station, svspp, catchsex, expcatchwt, expcatchnum from svdbs.union_fscs_svcat ",
                  "where cruise6 = ", survey
@@ -383,3 +388,4 @@ showNotification2 <- function (ui, action = NULL, duration = 5, closeButton = TR
   id
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
