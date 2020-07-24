@@ -12,7 +12,7 @@ library(ggplot2)
 
 #CHANGE TO YOUR PASSWORD AND USER NAME!!!!! **************************************************
 Sys.setenv(ORACLE_HOME="/ora1/app/oracle/product/11.2.0/dbhome_1")
-if(!exists("sole")) sole <- odbcConnect(dsn="sole", uid="amiller", pwd="$$Vwda44862003", believeNRows=FALSE)
+if(!exists("sole")) sole <- odbcConnect(dsn="sole", uid="amiller", pwd="XXXXXXXX", believeNRows=FALSE)
 #webshot::install_phantomjs()
 
 source("chooser.R") 
