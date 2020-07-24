@@ -12,8 +12,7 @@ library(ggplot2)
 
 #CHANGE TO YOUR PASSWORD AND USER NAME!!!!! **************************************************
 Sys.setenv(ORACLE_HOME="/ora1/app/oracle/product/11.2.0/dbhome_1")
-
-sole <- odbcConnect(dsn="sole", uid="XXXX", pwd="XXXX", believeNRows=FALSE)
+if(!exists("sole")) sole <- odbcConnect(dsn="sole", uid="amiller", pwd="$$Vwda44862003", believeNRows=FALSE)
 #webshot::install_phantomjs()
 
 source("chooser.R") 
@@ -84,7 +83,11 @@ strata.list$AllStrata <- ifelse(nchar(strata.list$AllStrata)<5,paste0('0', strat
 #output of the above querry
 # tab.out=species[,c(1,2,3,20,21)]
 # write.csv(tab.out,file="agesOut.csv")
-
+bsb.in = dget("user.Inputs")
+print(bsb.in$strata)
+print(strata.list[,1])
+print(names(tags))
+print(tags$option)
 # 
 # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ui <-
@@ -118,26 +121,36 @@ ui <-
             column(6,
                    fluidRow(
                      column(4,
+                            h5(strong("Specify input file:")),
+                            fileInput("sp_info", "Choose Species/Stock Info File"),
                             h5(strong("Select strata:")),
+                            #uiOutput("ui.strata")
                             chooserInput("mychooser", "Available strata", "Selected frobs", #new custom widget strata selection using chooser.R
-                                         strata.list[,1], c(), size = 36, multiple = TRUE
-                            )),
+                                         #strata.list[,1], c(), size = 36, multiple = TRUE)#,
+                                         strata.list[,1], bsb.in$strata, size = 36, multiple = TRUE)
+                            #strata.list[,1], uiOutput("ui.sp_info")$strata, size = 36, multiple = TRUE),
+                            #checkboxInput("assess_strata", label = strong("Use assessment strata"), value = TRUE)
+                     ),
                      column(8,
                             
                             selectInput("species", "Select species:",              #Species drop menu
                                         choices =  species$COMNAME, 
                                         selected = "BLACK SEA BASS"),
-                            
+                            #uiOutput("ui.species"),
+                            #selectInput("stock", "Select stock:",              #Species drop menu
+                            #            choices =  species$STOCKNAME, 
+                            #            selected = "BLACK SEA BASS"),
                             fluidRow(
                               column(3,
                                      radioButtons("season", "Choose season:",               #species radio buttons - switch map check boxes to these?  Probably a good idea.
                                                   choices = list("SPRING" = "SPRING", "FALL" = "FALL"), 
                                                   selected = "SPRING")),
+                              #uiOutput("ui.season")),
                               column(9,   
                                      sliderInput("years", "Select range of year(s):",            #Years slider
                                                  min = 1950, 
-                                                 max = 2019,
-                                                 value = c(2009,2018), sep = ""))),
+                                                 max = 2020,
+                                                 value = c(1968,2020), sep = ""))),
                             fluidRow(
                               column(6,
                                      uiOutput("ui.len")),
@@ -193,9 +206,6 @@ ui <-
                                                  c("none", "specify values"),
                                                  selected = "none"),
                                      uiOutput("ui.gdv.calib"))),
-                            fluidRow(
-                              checkboxInput("swept_area", label = strong("Use measured swept area"), value = TRUE)
-                            ),
                             
                             fluidRow(
                               column(3,
@@ -342,6 +352,44 @@ ui <-
 server = function(input, output, session){
   source("helper.R")  #moved the stratification calculation function out the server function for ease of reading the code
   #it is now in helper.R
+  # output$ui.species <- renderUI({  #generates dynamic UI for filling in species from file
+  #   #if (is.null(input$sp_file))
+  #   #  return()
+  #   species.use = "BLACK SEA BASS"    
+  #   if (!is.null(input$sp_file)){
+  #     sp_list = dget(input$sp_file)
+  #     if(!is.null(sp_list$species)) species.use = sp_list$species
+  #   }
+  #   #specify html 
+  #   selectInput("species", "Select species:",              #Species drop menu
+  #               choices =  species$COMNAME, 
+  #               selected = species.use)
+  # })
+  # output$ui.strata <- renderUI({  #generates dynamic UI for filling in strata from file
+  #   if (is.null(input$species))
+  #     return()
+  #   strata.use = c()
+  #   if (!is.null(input$sp_file)){
+  #     sp_list = dget(input$sp_file)
+  #     if(!is.null(sp_list$strata)) strata.use = sp_list$strata
+  #   }
+  #   #specify html 
+  #   chooserInput("mychooser", "Available strata", "Selected frobs", #new custom widget strata selection using chooser.R
+  #                strata.list[,1], strata.use, size = 36, multiple = TRUE)#,
+  # })
+  # output$ui.season <- renderUI({  #generates dynamic UI for filling in season from file
+  #   if (is.null(input$species))
+  #     return()
+  #   season.use = "SPRING"
+  #   if (!is.null(input$sp_file)){
+  #     sp_list = dget(input$sp_file)
+  #     if(!is.null(sp_list$season)) season.use = sp_list$season
+  #   }
+  #   #specify html 
+  #   radioButtons("season", "Choose season:",               #species radio buttons - switch map check boxes to these?  Probably a good idea.
+  #                choices = list("SPRING" = "SPRING", "FALL" = "FALL"), 
+  #                selected = season.use)
+  # })
   output$ui.len <- renderUI({  #generates dynamic UI for length widget
     if (is.null(input$species))
       return()
@@ -432,7 +480,13 @@ server = function(input, output, session){
     
     # Depending on input$calib_type, we'll generate a different
     # UI component and send it to the client.
+    print(names(input))
+    print(input$species)
+    print(input$sp_info)
+    print(input$calib_type)
+    #stop()
     if (species$BIGELOWCALTYPE[species$COMNAME==input$species] == 'CONSTANT'){
+      #if (species$BIGELOWCALTYPE[species$COMNAME==input$species] == 'CONSTANT'){
       switch(input$calib_type,
              "convert to Albatross" = selectInput("calib_meth", "Select calibration method:",
                                                   choices = c("constant" = "alb.const.rho")
@@ -535,8 +589,11 @@ server = function(input, output, session){
     
     yrs=seq(min(input$years),max(input$years))
     #grab cruise6 from the rows with matching season and year
-    cruise6 <- survey.cruises$CRUISE6[survey.cruises$SEASON == input$season & 
-                                        survey.cruises$YEAR %in% yrs]
+    print("yrs")
+    print(yrs)
+    #you get multiple values before 1982, maybe because of multiple vessels?
+    cruise6 <- unique(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season & 
+                                               survey.cruises$YEAR %in% yrs])
     spp <- species$SVSPP[species$COMNAME == input$species] #species name as well
     
     strata.in <- input$mychooser$right
@@ -594,9 +651,6 @@ server = function(input, output, session){
     if(S=="" | S>9) S<-1
     if(H=="" | H>7) H<-3
     if(G=="" | G>9) G<-6
-    #swept area
-    swept_area <- input$swept_area
-    
     
     #Expand to cover unsampled strata? For now this is automatic, but could be built into an reactive input
     Expansion=T
@@ -608,6 +662,8 @@ server = function(input, output, session){
                    , " and STRATUM IN('", paste(ifelse(nchar(strata.in)<5,paste0('0', strata.in),strata.in), collapse = "','")
                    , "')"," and svspp = ", spp, ";", sep = '')
     len.view <- as.data.frame(sqlQuery(sole,q.len))
+    print(head(len.view))
+    print(dim(len.view))
     #adjust length range and report in console
     #if(min(len.range)<len.view$MINL | max(len.range)>len.view$MAXL) print("Adjusting user requested lengths to range of observed values")
     #if(min(len.range)<len.view$MINL) len.range <- len.range[which(len.range>=len.view$MINL)]
@@ -657,8 +713,7 @@ server = function(input, output, session){
                                                   Type=Type,
                                                   Operation=Operation,
                                                   Gear=Gear,
-                                                  Acquisition=Acquisition,
-                                                  swept_area=swept_area
+                                                  Acquisition=Acquisition
         )
         # #Progress bar
         withProgress(message=paste0('Calculating indices for ',yrs[i]),{
@@ -924,7 +979,7 @@ server = function(input, output, session){
     
     
     getInputs=reactive({
-      #if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
+      if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
       
     })
     
@@ -943,7 +998,7 @@ server = function(input, output, session){
         suppressWarnings(lapply(names(All.out),write.list))
         
         # if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
-        # user.Inputs=getInputs()
+        user.Inputs=getInputs()
         write.list=function(x) {
           write.table(x,file,append=T,sep=",",row.names = F,col.names = F)
           write.table(data.frame(userInputs[[x]]),file,row.names = F,append= T,sep=',' ,col.names = F)
@@ -957,10 +1012,10 @@ server = function(input, output, session){
       content = function(file) {
         #All.out should now be defined when the run button is hit. 
         #All.out=getOutput()
-        #user.Inputs=getInputs()
+        user.Inputs=getInputs()
         
-        #SAGAr=list("Indices"=All.out,"UserInputs"=user.Inputs)
-        SAGAr=list("Indices"=All.out)
+        SAGAr=list("Indices"=All.out,"UserInputs"=user.Inputs)
+        #SAGAr=list("Indices"=All.out)
         save(SAGAr,file=file)
         
       }
