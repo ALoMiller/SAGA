@@ -12,7 +12,7 @@ library(ggplot2)
 
 #CHANGE TO YOUR PASSWORD AND USER NAME!!!!! **************************************************
 Sys.setenv(ORACLE_HOME="/ora1/app/oracle/product/11.2.0/dbhome_1")
-if(!exists("sole")) sole <- odbcConnect(dsn="sole", uid="amiller", pwd="XXXXXXXX", believeNRows=FALSE)
+if(!exists("sole")) sole <- odbcConnect(dsn="sole", uid="XXXXXXX", pwd="XXXXXXX", believeNRows=FALSE)
 #webshot::install_phantomjs()
 
 source("chooser.R") 
@@ -83,8 +83,8 @@ strata.list$AllStrata <- ifelse(nchar(strata.list$AllStrata)<5,paste0('0', strat
 #output of the above querry
 # tab.out=species[,c(1,2,3,20,21)]
 # write.csv(tab.out,file="agesOut.csv")
-bsb.in = dget("user.Inputs")
-print(bsb.in$strata)
+#bsb.in = dget("user.Inputs") #pulls in bsb inputs for testing
+#print(bsb.in$strata)
 print(strata.list[,1])
 print(names(tags))
 print(tags$option)
@@ -122,12 +122,12 @@ ui <-
                    fluidRow(
                      column(4,
                             h5(strong("Specify input file:")),
-                            fileInput("sp_info", "Choose Species/Stock Info File"),
+                            #fileInput("sp_info", "Choose Species/Stock Info File"),
                             h5(strong("Select strata:")),
                             #uiOutput("ui.strata")
                             chooserInput("mychooser", "Available strata", "Selected frobs", #new custom widget strata selection using chooser.R
-                                         #strata.list[,1], c(), size = 36, multiple = TRUE)#,
-                                         strata.list[,1], bsb.in$strata, size = 36, multiple = TRUE)
+                                         strata.list[,1], c(), size = 36, multiple = TRUE)#,
+                            #strata.list[,1], bsb.in$strata, size = 36, multiple = TRUE) #used for testing - autoinputs BSB strata
                             #strata.list[,1], uiOutput("ui.sp_info")$strata, size = 36, multiple = TRUE),
                             #checkboxInput("assess_strata", label = strong("Use assessment strata"), value = TRUE)
                      ),
@@ -206,6 +206,9 @@ ui <-
                                                  c("none", "specify values"),
                                                  selected = "none"),
                                      uiOutput("ui.gdv.calib"))),
+                            fluidRow(
+                              checkboxInput("swept_area", label = strong("Use measured swept area"), value = TRUE)
+                            ),
                             
                             fluidRow(
                               column(3,
@@ -651,6 +654,8 @@ server = function(input, output, session){
     if(S=="" | S>9) S<-1
     if(H=="" | H>7) H<-3
     if(G=="" | G>9) G<-6
+    #swept area
+    swept_area <- input$swept_area
     
     #Expand to cover unsampled strata? For now this is automatic, but could be built into an reactive input
     Expansion=T
@@ -713,7 +718,8 @@ server = function(input, output, session){
                                                   Type=Type,
                                                   Operation=Operation,
                                                   Gear=Gear,
-                                                  Acquisition=Acquisition
+                                                  Acquisition=Acquisition,
+                                                  swept_area=swept_area
         )
         # #Progress bar
         withProgress(message=paste0('Calculating indices for ',yrs[i]),{

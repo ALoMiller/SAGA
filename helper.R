@@ -31,7 +31,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                                               do.BigLen=F,
                                               do.AlbLen=F,
                                               big.len.calib=NULL,
-                                              boot=F
+                                              boot=F,
+                                              swept_area = TRUE
 )
 {
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -41,7 +42,6 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   stratum.sizes.q <- paste("select stratum, stratum_area, strgrp_desc, stratum_name from svdbs.svmstrata where STRATUM IN ('", 
                            paste(strata, collapse = "','"), "')"," order by stratum", sep = '')
   str.size <- sqlQuery(oc,stratum.sizes.q)
-  str.size$ExpAreas <- str.size$STRATUM_AREA/tow_swept_area
   print(survey)
   
   #if(as.integer(substr(paste(survey),1,4))<2009) { #TOGA is not needed for pre Bigelow years
@@ -71,6 +71,19 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   print(head(sta.view))
   temp <- str.size[match(sta.view$STRATUM, str.size$STRATUM),]
   sta.view <- cbind(sta.view, temp[,-1])
+  
+  #Add station specific swept area
+  
+  q.sta.sweptarea <- paste0("select cruise6, station, area_swept_wings_mean_km2 from svdbs.tow_evaluation ",
+                            "where cruise6 = ", survey)
+  sta.sweptarea <- sqlQuery(oc,q.sta.sweptarea)
+  temp2 <- sta.sweptarea[match(sta.view$STATION,sta.sweptarea$STATION),]
+  tow_swept_area = ifelse(sta.view$SVVESSEL[1]=='HB', 0.007, 0.01) #changes for smaller swept area during Bigelow years
+  sta.view <- cbind(sta.view, AREA_SWEPT_WINGS_MEAN_KM2 = temp2[,c(-1,-2)])
+  sta.view$AREA_SWEPT_WINGS_MEAN_NM2 <- sta.view$AREA_SWEPT_WINGS_MEAN_KM2*0.539957^2 #change from km to nm
+  sta.view$AREA_SWEPT_WINGS_MEAN_NM2[which(is.na(sta.view$AREA_SWEPT_WINGS_MEAN_NM2))] <- tow_swept_area #if no tow eval data, uses default
+  sta.view$SWEPT_AREA_RATIO <- tow_swept_area/sta.view$AREA_SWEPT_WINGS_MEAN_NM2 #proportion of default swept area for that particular tow
+  str.size$ExpArea <- str.size$STRATUM_AREA/tow_swept_area #effectively the total number of possible tows in a stratum
   
   #CATCH data
   q.cat <- paste("select cruise6, stratum, tow, station, svspp, catchsex, expcatchwt, expcatchnum from svdbs.union_fscs_svcat ",
@@ -146,7 +159,11 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       }
     }
   }
-  
+  #Account for new swept area conversions
+  if(swept_area){  
+    catch.data$EXPCATCHNUM = catch.data$EXPCATCHNUM * catch.data$SWEPT_AREA_RATIO
+    catch.data$EXPCATCHWT = catch.data$EXPCATCHWT * catch.data$SWEPT_AREA_RATIO
+  }
   #Extract the number of stations in each selected stratum in the selected years
   m <- sapply(str.size$STRATUM, function(x) sum(sta.view$STRATUM == x))
   M <- str.size$ExpArea #This is the proportional relationship between the area of the stratum and area of a tow...
@@ -174,6 +191,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     len.view <- sqlQuery(oc,q.len)
     len.data <- merge(catch.data, len.view, by = c('CRUISE6','STRATUM','TOW','STATION','CATCHSEX'),  all.x=T, all.y = F)
     len.data$EXPNUMLEN=ifelse(is.na(len.data$EXPNUMLEN),0,len.data$EXPNUMLEN)
+    
+    if(swept_area) len.data$EXPNUMLEN_ADJ = len.data$EXPNUMLEN * len.data$SWEPT_AREA_RATIO
     
     #cal.Nal.hat.stratum = Nal.hat.stratum
     for(i in 1:length(lengths))
