@@ -12,7 +12,6 @@ library(ggplot2)
 
 #CHANGE TO YOUR PASSWORD AND USER NAME!!!!! **************************************************
 Sys.setenv(ORACLE_HOME="/ora1/app/oracle/product/11.2.0/dbhome_1")
-if(!exists("sole")) sole <- odbcConnect(dsn="sole", uid="XXXXXXX", pwd="XXXXXXX", believeNRows=FALSE)
 #webshot::install_phantomjs()
 
 source("chooser.R") 
@@ -34,15 +33,6 @@ col.bin <-function (vec1, vec.bins ) {
 
 Strata <- readOGR("files","groundfish_strata") ## read sampling strata
 
-get.survey.data.fn <- function(oc = sole, purpose.code = 10){
-  q.surveys <- paste0("select cruise6,purpose_code,season,year, startdate, enddate from mstr_cruise where purpose_code=", purpose.code, 
-                      " and cruise6 is not null order by year,cruise6,season")
-  survey.view <- sqlQuery(oc,q.surveys)
-  return(survey.view)
-}
-survey.cruises <- get.survey.data.fn()
-fall.cruises <- unique(survey.cruises$CRUISE6[survey.cruises$SEASON == 'FALL'])
-spring.cruises <- unique(survey.cruises$CRUISE6[survey.cruises$SEASON == 'SPRING'])
 big.len.calib <- read.csv('files/BigelowLenCalib.csv')
 # big.len.calib <- read.csv('files/ADIOSBigelowLenCalib.csv')
 # big.len.calib$STOCK <- as.character(big.len.calib$STOCK)
@@ -95,22 +85,26 @@ ui <-
     dashboardHeader(title = "NEFSC Survey Data Portal"), #"Portal" is not showing up in the sidebar
     dashboardSidebar(
       #Port user between options for mapping application or SAGA clone
-      sidebarMenu(style = "position: fixed; overflow: visible;",
-                  menuItem(
-                    "Survey Indices", 
-                    tabName = "indices", 
-                    icon = icon("fish")
-                  ),
-                  menuItem(
-                    "Maps", 
-                    tabName = "maps", 
-                    icon = icon("globe")
-                  ),
-                  menuItem(
-                    "Help", 
-                    tabName = "help", 
-                    icon = icon("baby")
-                  )                  
+      #sidebarMenu(style = "position: fixed; overflow: visible;",
+      sidebarMenu(
+        textInput("user", label = "Username", placeholder = "Enter Oracle username..."),
+        passwordInput("pass", label = "Password", placeholder = "Enter Oracle password..."),
+        
+        menuItem(
+          "Survey Indices", 
+          tabName = "indices", 
+          icon = icon("fish")
+        ),
+        menuItem(
+          "Maps", 
+          tabName = "maps", 
+          icon = icon("globe")
+        ),
+        menuItem(
+          "Help", 
+          tabName = "help", 
+          icon = icon("baby")
+        )                  
       )
     ),
     dashboardBody(
@@ -121,7 +115,7 @@ ui <-
             column(6,
                    fluidRow(
                      column(4,
-                            h5(strong("Specify input file:")),
+                            #h5(strong("Specify input file:")),
                             #fileInput("sp_info", "Choose Species/Stock Info File"),
                             h5(strong("Select strata:")),
                             #uiOutput("ui.strata")
@@ -487,6 +481,8 @@ server = function(input, output, session){
     print(input$species)
     print(input$sp_info)
     print(input$calib_type)
+    print(input$user)
+    print(input$pass)
     #stop()
     if (species$BIGELOWCALTYPE[species$COMNAME==input$species] == 'CONSTANT'){
       #if (species$BIGELOWCALTYPE[species$COMNAME==input$species] == 'CONSTANT'){
@@ -583,12 +579,48 @@ server = function(input, output, session){
     
     print("Running")
     
+    ######Pull cruise codes and add user/pwd
+    #sole <- odbcConnect(dsn="sole", uid=input$user, pwd=input$pass, believeNRows=FALSE)
+    #sole <- try(odbcConnect(dsn="sole", uid=input$user, pwd=input$pass, believeNRows=FALSE))
+    
+    #Missing sole user/password notification
+    if(input$user=='') {
+      showNotification("PLEASE ENTER USERNAME!!"
+                       ,id="missingUSER",duration=NULL,type="error")
+    } else removeNotification(id="missingUSER")
+    req(input$user)
+    if(input$pass=='') {
+      showNotification("PLEASE ENTER PASSWORD!!"
+                       ,id="missingPASS",duration=NULL,type="error")
+    } else removeNotification(id="missingPASS")
+    req(input$pass)
+    
+    #CHECK sole username/pwd
+    sole <- try(odbcConnect(dsn="sole", uid=input$user, pwd=input$pass, believeNRows=FALSE))
+    if(sole==-1){
+      showNotification("INCORRECT USERNAME/PASSWORD!!!"
+                       ,id="incorrectOracle",duration=NULL,type="error")
+    } else removeNotification(id="incorrectOracle")
+    req(sole != -1)#,cancelOutput = TRUE)
+    
+    get.survey.data.fn <- function(oc = sole, purpose.code = 10){
+      q.surveys <- paste0("select cruise6,purpose_code,season,year, startdate, enddate from mstr_cruise where purpose_code=", purpose.code, 
+                          " and cruise6 is not null order by year,cruise6,season")
+      survey.view <- sqlQuery(oc,q.surveys)
+      return(survey.view)
+    }
+    
+    survey.cruises <- get.survey.data.fn()
+    fall.cruises <- unique(survey.cruises$CRUISE6[survey.cruises$SEASON == 'FALL'])
+    spring.cruises <- unique(survey.cruises$CRUISE6[survey.cruises$SEASON == 'SPRING'])
+    
+    #Missing Strata notification
     if(length(input$mychooser$right)==0) {
       showNotification("PLEASE CHOOSE AT LEAST ONE STRATUM!!"
                        ,id="strataChosen",duration=NULL,type="error")
-    } else removeNotification(id="strataChosen")    
-    
+    } else removeNotification(id="strataChosen") 
     req(input$mychooser$right)
+    
     
     yrs=seq(min(input$years),max(input$years))
     #grab cruise6 from the rows with matching season and year
@@ -656,6 +688,7 @@ server = function(input, output, session){
     if(G=="" | G>9) G<-6
     #swept area
     swept_area <- input$swept_area
+    
     
     #Expand to cover unsampled strata? For now this is automatic, but could be built into an reactive input
     Expansion=T
