@@ -31,9 +31,10 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                                               do.BigLen=F,
                                               do.AlbLen=F,
                                               big.len.calib=NULL,
-                                              boot=F
-                                              )
-  {
+                                              boot=F,
+                                              swept_area = TRUE
+)
+{
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   # *********** sql queries ***************#
   #Stratum information required to stratify (stratum area, etc)
@@ -41,26 +42,48 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   stratum.sizes.q <- paste("select stratum, stratum_area, strgrp_desc, stratum_name from svdbs.svmstrata where STRATUM IN ('", 
                            paste(strata, collapse = "','"), "')"," order by stratum", sep = '')
   str.size <- sqlQuery(oc,stratum.sizes.q)
-  str.size$ExpAreas <- str.size$STRATUM_AREA/tow_swept_area
   print(survey)
   
-  if(as.integer(substr(paste(survey),1,4))<2009) { #TOGA is not needed for pre Bigelow years
-    TowCoding=paste0( " and STATYPE <= ",S," and HAUL <= ",H," and GEARCOND <= ", G) 
-  } else TowCoding=paste0(" and TYPE_CODE <= ", Type, " and OPERATION_CODE <= ", Operation, " and GEAR_CODE <= ", Gear) 
+  #if(as.integer(substr(paste(survey),1,4))<2009) { #TOGA is not needed for pre Bigelow years
+  #  TowCoding=paste0( " and STATYPE <= ",S," and HAUL <= ",H," and GEARCOND <= ", G) 
+  #} else TowCoding=paste0(" and TYPE_CODE <= ", Type, " and OPERATION_CODE <= ", Operation, " and GEAR_CODE <= ", Gear) 
   
   #STATION location data 
   q.sta <- paste("select cruise6, stratum, tow, station, shg, svvessel, svgear, est_year, est_month, est_day, ",
                  "substr(est_time,1,2) || substr(est_time,4,2) as time, towdur, dopdistb, dopdistw, avgdepth, ",
-                 " statype, haul, gearcond, ",
+                 " statype, haul, gearcond, type_code, operation_code, gear_code, acquisition_code,",
                  "area, bottemp, beglat, beglon from svdbs.union_fscs_svsta ",
-                  "where cruise6 = ", survey
+                 "where cruise6 = ", paste(survey)
                  #this would only get one year of survey data! option to fix below
                  #"where cruise6 in ('", paste(survey, collapse = "','"), "')"
                  , " and STRATUM IN ('", paste(strata, collapse = "','"), "')"
-                 , TowCoding, " order by cruise6, stratum, tow, station", sep = '')
+                 #, TowCoding, 
+                 ," order by cruise6, stratum, tow, station", sep = '')
+  
   sta.view <- sqlQuery(oc,q.sta) 
+  print(head(sta.view))
+  shg = cbind.data.frame(S= as.integer(substr(sta.view$SHG,1,1)),H = as.integer(substr(sta.view$SHG,2,2)),G = as.integer(substr(sta.view$SHG,3,3)))
+  toga = cbind.data.frame(T = sta.view$TYPE_CODE, O = sta.view$OPERATION_CODE, G = sta.view$GEAR_CODE, A = sta.view$ACQUISITION_CODE)
+  #SHG OR TOGA filter below
+  if(as.integer(substr(paste(survey),1,4))<2009) sta.view = sta.view[shg$S <= S & shg$H <= H & shg$G <= G,]
+  else sta.view = sta.view[toga$T <= Type & toga$O <= Operation & toga$G <= Gear,] #A not used
+  print("sta.view")
+  print(head(sta.view))
   temp <- str.size[match(sta.view$STRATUM, str.size$STRATUM),]
   sta.view <- cbind(sta.view, temp[,-1])
+  
+  #Add station specific swept area
+  
+  q.sta.sweptarea <- paste0("select cruise6, station, area_swept_wings_mean_km2 from svdbs.tow_evaluation ",
+                            "where cruise6 = ", survey)
+  sta.sweptarea <- sqlQuery(oc,q.sta.sweptarea)
+  temp2 <- sta.sweptarea[match(sta.view$STATION,sta.sweptarea$STATION),]
+  tow_swept_area = ifelse(sta.view$SVVESSEL[1]=='HB', 0.007, 0.01) #changes for smaller swept area during Bigelow years
+  sta.view <- cbind(sta.view, AREA_SWEPT_WINGS_MEAN_KM2 = temp2[,c(-1,-2)])
+  sta.view$AREA_SWEPT_WINGS_MEAN_NM2 <- sta.view$AREA_SWEPT_WINGS_MEAN_KM2*0.539957^2 #change from km to nm
+  sta.view$AREA_SWEPT_WINGS_MEAN_NM2[which(is.na(sta.view$AREA_SWEPT_WINGS_MEAN_NM2))] <- tow_swept_area #if no tow eval data, uses default
+  sta.view$SWEPT_AREA_RATIO <- tow_swept_area/sta.view$AREA_SWEPT_WINGS_MEAN_NM2 #proportion of default swept area for that particular tow
+  str.size$ExpArea <- str.size$STRATUM_AREA/tow_swept_area #effectively the total number of possible tows in a stratum
   
   #CATCH data
   q.cat <- paste("select cruise6, stratum, tow, station, svspp, catchsex, expcatchwt, expcatchnum from svdbs.union_fscs_svcat ",
@@ -136,7 +159,11 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       }
     }
   }
-
+  #Account for new swept area conversions
+  if(swept_area){  
+    catch.data$EXPCATCHNUM = catch.data$EXPCATCHNUM * catch.data$SWEPT_AREA_RATIO
+    catch.data$EXPCATCHWT = catch.data$EXPCATCHWT * catch.data$SWEPT_AREA_RATIO
+  }
   #Extract the number of stations in each selected stratum in the selected years
   m <- sapply(str.size$STRATUM, function(x) sum(sta.view$STRATUM == x))
   M <- str.size$ExpArea #This is the proportional relationship between the area of the stratum and area of a tow...
@@ -164,7 +191,9 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     len.view <- sqlQuery(oc,q.len)
     len.data <- merge(catch.data, len.view, by = c('CRUISE6','STRATUM','TOW','STATION','CATCHSEX'),  all.x=T, all.y = F)
     len.data$EXPNUMLEN=ifelse(is.na(len.data$EXPNUMLEN),0,len.data$EXPNUMLEN)
-
+    
+    if(swept_area) len.data$EXPNUMLEN_ADJ = len.data$EXPNUMLEN * len.data$SWEPT_AREA_RATIO
+    
     #cal.Nal.hat.stratum = Nal.hat.stratum
     for(i in 1:length(lengths))
     {
@@ -175,7 +204,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] / big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
       }
     }
-
+    
     #Build in a place holder for bootstrapping length data
     if(boot){
       boot.lendat = boot.lendat.fn(len.data)
@@ -191,7 +220,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     #nested sapply! This sums the numbers at length in each stratum over each of the user specified lengths
     #result is a matrix with a row for each stratum and a col for each length
     samp.tot.nal <- sapply(lengths, function(x) sapply(str.size$STRATUM
-                    , function(y) sum(len.data$EXPNUMLEN[len.data$STRATUM == y & len.data$LENGTH == x],na.rm = TRUE)))
+                                                       , function(y) sum(len.data$EXPNUMLEN[len.data$STRATUM == y & len.data$LENGTH == x],na.rm = TRUE)))
     samp.tot.nal<-matrix(samp.tot.nal,nrow=length(strata))
     rownames(samp.tot.nal) <- as.character(strata)
     colnames(samp.tot.nal) <- as.character(lengths)
@@ -283,7 +312,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         if(length(unique(WtLenEx$AGE[!is.na(WtLenEx$AGE)]))>1) {
           #The multnomial should fit to all the ages in the data and then clip to the user specified range afterwards
           mult.props<- get.mult.props(big.len=(lengths),big.age=BigAge)
-              #,ref.age = 3) #don't think we need this
+          #,ref.age = 3) #don't think we need this
         } else { #if there is only one age then you have 100% in one row
           p <- matrix(0, nrow=length(lengths), ncol=(max(ages)+1))
           p[min(WtLenEx$LENGTH[!is.na(WtLenEx$AGE)]):max(WtLenEx$LENGTH[!is.na(WtLenEx$AGE)])
@@ -306,10 +335,10 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         Naa.hat.stratum=Naa.hat.stratum[,1:(length(ages)+1)]
         names(Naa.hat.stratum)=c("Stratum",paste0("Age",ages)) #rename cols
       } else { #No data condition
-          Naa.hat.stratum=c();
-          Naa.hat.stratum=data.frame(strata,matrix(NA,nrow=length(strata),ncol=(max(ages)+1)),stringsAsFactors = F)
-          names(Naa.hat.stratum)=c("Stratum",paste0("Age",ages)) #rename cols
-        }
+        Naa.hat.stratum=c();
+        Naa.hat.stratum=data.frame(strata,matrix(NA,nrow=length(strata),ncol=(max(ages)+1)),stringsAsFactors = F)
+        names(Naa.hat.stratum)=c("Stratum",paste0("Age",ages)) #rename cols
+      }
       
     }
   }
@@ -373,7 +402,7 @@ showNotification2 <- function (ui, action = NULL, duration = 5, closeButton = TR
                                id = NULL, type = c("default", "message", "warning", "error"), 
                                session = shiny:::getDefaultReactiveDomain()) {
   if (is.null(id)) 
-  id <- shiny:::createUniqueId(8)
+    id <- shiny:::createUniqueId(8)
   res <- shiny:::processDeps(HTML(ui), session)
   actionRes <- shiny:::processDeps(action, session)
   #print(res$html)
@@ -383,4 +412,3 @@ showNotification2 <- function (ui, action = NULL, duration = 5, closeButton = TR
   id
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
