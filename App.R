@@ -301,13 +301,13 @@ ui <-
                   ," A plot of the indices by year will appear when the application is finished. You can change the inputs and "
                   ," hit the run button again to develop new indices based on the slected inputs."),
                 h4("Download .csv Data"),
-                p(paste0(" Click this buttom once the plot of the indices has been displayed to download the survey indices in .csv "
+                p(paste0(" Click this button once the plot of the indices has been displayed to download the survey indices in .csv "
                          ," format. The file will include indices at length, age and by strata, as well as the inputs selected.")),
                 p(paste0("Please note that the column at the far right of the indices at length is the total across the selected"
                          ,"size and age range.")),
                 em(strong("*The overall indices are for all available sizes and ages.*")),
                 h4("Download Rdata"),
-                p(paste0(" Click this buttom once the plot of the indices has been displayed to download the survey indices as "
+                p(paste0(" Click this button once the plot of the indices has been displayed to download the survey indices as "
                          ," an Rdata object. The resulting file can be read using load() in R. It will load an object called "
                          ," SAGAr into memory that will contain "
                          ," indices at length, age and by strata, as well as the inputs selected. Use str(SAGAr) to see the "
@@ -624,8 +624,8 @@ server = function(input, output, session){
     
     yrs=seq(min(input$years),max(input$years))
     #grab cruise6 from the rows with matching season and year
-    print("yrs")
-    print(yrs)
+    #print("yrs")
+    #print(yrs)
     #you get multiple values before 1982, maybe because of multiple vessels?
     cruise6 <- unique(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season & 
                                                survey.cruises$YEAR %in% yrs])
@@ -721,7 +721,7 @@ server = function(input, output, session){
     if(length(cruise6)>0){
       #Destroy the saved memory objects that are outputs
       Ind.out=c();IAL.out=c();VIAL.out=c();IAA.out=c();maxL=max(len.range);minL=min(len.range);unUsedStrata=strata.in;
-      UnSampledStrata=list();Expand=c();
+      UnSampledStrata=list();Expand=c();CatchData=c();
       for(i in 1:length(cruise6)) {
         
         x.out<- get.survey.stratum.estimates.2.fn(spp=spp,
@@ -761,6 +761,8 @@ server = function(input, output, session){
             
           }
         })
+        
+        if(nrow(x.out$catchdata[[1]])>0) CatchData<-(rbind(CatchData,x.out$catchdata[[1]])) #keep the catch data for later output
         
         #Take the important parts from x.out to generate an index over time.
         Yeari=as.integer(substr(paste(cruise6[i]),1,4))
@@ -845,12 +847,24 @@ server = function(input, output, session){
         names(IAA.out)=c('Year','nTows',paste0("Age",age.range),'Total')
       } else IAA.out="No ages"
       
+      CatchData=as.data.frame(CatchData)
+      #print(CatchData)
+      names(CatchData)=c("CRUISE6","STRATUM","TOW","STATION","SHG","SVVESSEL","SVGEAR","EST_YEAR","EST_MONTH"                
+                        ,"EST_DAY","TIME","TOWDUR","DOPDISTB","DOPDISTW","AVGDEPTH","STATYPE","HAUL","GEARCOND"                 
+                        ,"TYPE_CODE","OPERATION_CODE","GEAR_CODE","ACQUISITION_CODE","AREA","BOTTEMP","BEGLAT"
+                        ,"BEGLON","STRATUM_AREA","STRGRP_DESC","STRATUM_NAME","AREA_SWEPT_WINGS_MEAN_KM2"
+                        ,"AREA_SWEPT_WINGS_MEAN_NM2" ,"SWEPT_AREA_RATIO","SVSPP","CATCHSEX","EXPCATCHWT","EXPCATCHNUM")
+      
       #try saving the data in a reactiveValues for later download 
       All.out<<-list( #Note that the assignment is done with " <<- " !!
         "Index"=Ind.out
         ,"NatLength"=IAL.out
         ,"VarNatLength"=VIAL.out
         ,"NatAge"=IAA.out
+        #Add tow data to the list, including station, catch and swept area estimates
+        #,"CatchData"=CatchData #unmodified from helper.r function for now
+        #Add the individual lengths as well?
+        
         #,"Species"=userInputs$species
         #,"Strata"=userInputs$strata
         # ,"Years"=range(userInputs$years)
@@ -1017,11 +1031,6 @@ server = function(input, output, session){
     #______________________________________________________________________________________________________
     
     
-    getInputs=reactive({
-      if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
-      
-    })
-    
     output$downloadData <- downloadHandler(
       filename = function() { paste(input$species, input$season, input$len1[1], input$len1[2], '.csv', sep='_') },
       content = function(file) {
@@ -1036,24 +1045,24 @@ server = function(input, output, session){
         }
         suppressWarnings(lapply(names(All.out),write.list))
         
-        # if(file.exists("user.Inputs")) user.Inputs=dget("user.Inputs")
-        user.Inputs=getInputs()
         write.list=function(x) {
           write.table(x,file,append=T,sep=",",row.names = F,col.names = F)
           write.table(data.frame(userInputs[[x]]),file,row.names = F,append= T,sep=',' ,col.names = F)
         }
         suppressWarnings(lapply(names(userInputs),write.list))
+        
+        #Add data to the end of this output
+        write.table("CatchData",file,row.names = F,append= T,sep=',' ,col.names = F)
+        write.table(CatchData,file,row.names = F,append= T,sep=',' ,col.names = T)
+        
       }
     )
     
     output$downloadDataR <- downloadHandler(
       filename = function() { paste(input$species, input$season,input$len1[1],input$len1[2], '.RData', sep='_') },
       content = function(file) {
-        #All.out should now be defined when the run button is hit. 
-        #All.out=getOutput()
-        user.Inputs=getInputs()
         
-        SAGAr=list("Indices"=All.out,"UserInputs"=user.Inputs)
+        SAGAr=list("Indices"=All.out,"UserInputs"=userInputs,"Catch.Data"=CatchData)
         #SAGAr=list("Indices"=All.out)
         save(SAGAr,file=file)
         

@@ -36,13 +36,14 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
 )
 {
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  options(stringsAsFactors = F)
   # *********** sql queries ***************#
   #Stratum information required to stratify (stratum area, etc)
   strata <- ifelse(nchar(strata)<5,paste0('0', strata),strata) #fix for when this is run twice - it adds another 0 and causes many errors
   stratum.sizes.q <- paste("select stratum, stratum_area, strgrp_desc, stratum_name from svdbs.svmstrata where STRATUM IN ('", 
                            paste(strata, collapse = "','"), "')"," order by stratum", sep = '')
   str.size <- sqlQuery(oc,stratum.sizes.q)
-  print(survey)
+  #print(survey)
   
   #if(as.integer(substr(paste(survey),1,4))<2009) { #TOGA is not needed for pre Bigelow years
   #  TowCoding=paste0( " and STATYPE <= ",S," and HAUL <= ",H," and GEARCOND <= ", G) 
@@ -61,14 +62,14 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                  ," order by cruise6, stratum, tow, station", sep = '')
   
   sta.view <- sqlQuery(oc,q.sta) 
-  print(head(sta.view))
+  #print(head(sta.view))
   shg = cbind.data.frame(S= as.integer(substr(sta.view$SHG,1,1)),H = as.integer(substr(sta.view$SHG,2,2)),G = as.integer(substr(sta.view$SHG,3,3)))
   toga = cbind.data.frame(T = sta.view$TYPE_CODE, O = sta.view$OPERATION_CODE, G = sta.view$GEAR_CODE, A = sta.view$ACQUISITION_CODE)
   #SHG OR TOGA filter below
   if(as.integer(substr(paste(survey),1,4))<2009) sta.view = sta.view[shg$S <= S & shg$H <= H & shg$G <= G,]
   else sta.view = sta.view[toga$T <= Type & toga$O <= Operation & toga$G <= Gear,] #A not used
-  print("sta.view")
-  print(head(sta.view))
+  #print("sta.view")
+  #print(head(sta.view))
   temp <- str.size[match(sta.view$STRATUM, str.size$STRATUM),]
   sta.view <- cbind(sta.view, temp[,-1])
   
@@ -80,7 +81,9 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   temp2 <- sta.sweptarea[match(sta.view$STATION,sta.sweptarea$STATION),]
   tow_swept_area = ifelse(sta.view$SVVESSEL[1]=='HB', 0.007, 0.01) #changes for smaller swept area during Bigelow years
   sta.view <- cbind(sta.view, AREA_SWEPT_WINGS_MEAN_KM2 = temp2[,c(-1,-2)])
-  sta.view$AREA_SWEPT_WINGS_MEAN_NM2 <- sta.view$AREA_SWEPT_WINGS_MEAN_KM2*0.539957^2 #change from km to nm
+  #Early years don't seem to have this variable!
+  sta.view$AREA_SWEPT_WINGS_MEAN_NM2=ifelse(!is.na(sta.view$AREA_SWEPT_WINGS_MEAN_KM2)
+                                            ,sta.view$AREA_SWEPT_WINGS_MEAN_KM2*0.539957^2,NA) #change from km to nm
   sta.view$AREA_SWEPT_WINGS_MEAN_NM2[which(is.na(sta.view$AREA_SWEPT_WINGS_MEAN_NM2))] <- tow_swept_area #if no tow eval data, uses default
   sta.view$SWEPT_AREA_RATIO <- tow_swept_area/sta.view$AREA_SWEPT_WINGS_MEAN_NM2 #proportion of default swept area for that particular tow
   str.size$ExpArea <- str.size$STRATUM_AREA/tow_swept_area #effectively the total number of possible tows in a stratum
@@ -362,6 +365,10 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   out$expand = sum(M)/sum(M[which(m>0)]) #=1 if all strata are sampled
   #report warnings
   out$warnings=list(LengthRange=Lrange,UnusedStrata=out$out[,"stratum"][out$out[,"EXPCATCHNUM"]==0.0],UnsampledStrata=ZeroTows)
+  
+  
+  #Add the station data for use later in output 
+  out$catchdata=list(catch.data)
   #print(out$out)
   
   
