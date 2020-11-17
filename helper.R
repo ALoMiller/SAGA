@@ -105,23 +105,23 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   #gear conversion - expand catch using a particular gear by the gear conversion factor.
   if(any(catch.data$SVGEAR %in% c(41,45))) { #This is an error trap for no gear of this type being in catch data
     catch.data$EXPCATCHNUM[which(is.element(catch.data$SVGEAR, c(41,45)))] <- 
-      gcf.n * catch.data$EXPCATCHNUM[which(is.element(catch.data$SVGEAR, c(41,45)))]
+      as.numeric(gcf.n) * catch.data$EXPCATCHNUM[which(is.element(catch.data$SVGEAR, c(41,45)))]
     catch.data$EXPCATCHWT[which(is.element(catch.data$SVGEAR, c(41,45)))] <- 
-      gcf.w * catch.data$EXPCATCHWT[which(is.element(catch.data$SVGEAR, c(41,45)))]
+      as.numeric(gcf.w) * catch.data$EXPCATCHWT[which(is.element(catch.data$SVGEAR, c(41,45)))]
   }
   #door conversion 
   if(any(catch.data$YEAR< 1985)) { #This is an error trap for no years < 1985
     catch.data$EXPCATCHNUM[which(catch.data$YEAR< 1985)] <- 
-      dcf.n * catch.data$EXPCATCHNUM[which(catch.data$YEAR< 1985)]
+      as.numeric(dcf.n) * catch.data$EXPCATCHNUM[which(catch.data$YEAR< 1985)]
     catch.data$EXPCATCHWT[which(catch.data$YEAR< 1985)] <- 
-      dcf.w * catch.data$EXPCATCHWT[which(catch.data$YEAR< 1985)]
+      as.numeric(dcf.w) * catch.data$EXPCATCHWT[which(catch.data$YEAR< 1985)]
   }
   #vessel conversion
   if(any(catch.data$SVVESSEL == 'DE')) { #This is an error trap for no DE vessel observations in catch data
     catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')] <- 
-      vcf.n * catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')]
+      as.numeric(vcf.n) * catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')]
     catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')] <- 
-      vcf.w * catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')]
+      as.numeric(vcf.w) * catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')]
   }
   #Bigelow conversion to Albatross series
   if(do.Albatross & !do.AlbLen){
