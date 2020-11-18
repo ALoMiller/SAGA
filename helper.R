@@ -117,7 +117,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       as.numeric(dcf.w) * catch.data$EXPCATCHWT[which(catch.data$YEAR< 1985)]
   }
   #vessel conversion
-  if(any(catch.data$SVVESSEL == 'DE')) { #This is an error trap for no DE vessel observations in catch data
+  if(any(catch.data$SVVESSEL[which(!is.na(catch.data$SVVESSEL))] == 'DE')) { #This is an error trap for no DE vessel observations in catch data
     catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')] <- 
       as.numeric(vcf.n) * catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')]
     catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')] <- 
