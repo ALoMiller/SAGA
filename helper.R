@@ -88,6 +88,11 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   sta.view$SWEPT_AREA_RATIO <- tow_swept_area/sta.view$AREA_SWEPT_WINGS_MEAN_NM2 #proportion of default swept area for that particular tow
   str.size$ExpArea <- str.size$STRATUM_AREA/tow_swept_area #effectively the total number of possible tows in a stratum
   
+  #There is some garbage in the sta.view dataframe for 2011 - no idea where it comes from, but you can check it with this:
+  #print(sta.view[which(is.na(sta.view$STRATUM)),])
+  sta.view<-sta.view[which(!is.na(sta.view$STRATUM)),] #this should remove it.
+  
+  
   #CATCH data
   q.cat <- paste("select cruise6, stratum, tow, station, svspp, catchsex, expcatchwt, expcatchnum from svdbs.union_fscs_svcat ",
                  "where cruise6 = ", survey
@@ -101,6 +106,9 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   #convert NA to 0 in catch number and weight
   catch.data$EXPCATCHNUM=ifelse(is.na(catch.data$EXPCATCHNUM),0,catch.data$EXPCATCHNUM)
   catch.data$EXPCATCHWT=ifelse(is.na(catch.data$EXPCATCHWT),0,catch.data$EXPCATCHWT)
+  #There seems to be some dangling NA causing some problems in 2011.
+  catch.data=catch.data[!is.na(catch.data$CRUISE6),]
+  
   
   #gear conversion - expand catch using a particular gear by the gear conversion factor.
   if(any(catch.data$SVGEAR %in% c(41,45))) { #This is an error trap for no gear of this type being in catch data
@@ -124,41 +132,41 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       as.numeric(vcf.w) * catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')]
   }
   #Bigelow conversion to Albatross series
-  if(do.Albatross & !do.AlbLen){
+  if(do.Albatross & !do.AlbLen & any(catch.data$EST_YEAR>2008)){
     if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
       if(catch.data$CRUISE6[1] %in% fall.cruises){
-        catch.data$EXPCATCHNUM[catch.data$EST_YEAR>2008] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR>2008]/species$FALLNUM[species$SVSPP==spp]
-        catch.data$EXPCATCHWT[catch.data$EST_YEAR>2008] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR>2008]/species$FALLWT[species$SVSPP==spp]
+        catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM/species$FALLNUM[species$SVSPP==spp]
+        catch.data$EXPCATCHWT <- catch.data$EXPCATCHWT/species$FALLWT[species$SVSPP==spp]
       }
       if(catch.data$CRUISE6[1] %in% spring.cruises){
-        catch.data$EXPCATCHNUM[catch.data$EST_YEAR>2008] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR>2008]/species$SPRNUM[species$SVSPP==spp]
-        catch.data$EXPCATCHWT[catch.data$EST_YEAR>2008] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR>2008]/species$SPRWT[species$SVSPP==spp]
+        catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM/species$SPRNUM[species$SVSPP==spp]
+        catch.data$EXPCATCHWT <- catch.data$EXPCATCHWT/species$SPRWT[species$SVSPP==spp]
       }
     }
   } 
   #Albatross conversion to Bigelow series
-  if(do.Bigelow){
+  if(do.Bigelow & any(catch.data$EST_YEAR<2009)){
     if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
       if(catch.data$CRUISE6[1] %in% fall.cruises){
-        catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009]*species$FALLNUM[species$SVSPP==spp]
-        catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009]*species$FALLWT[species$SVSPP==spp]
+        catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM*species$FALLNUM[species$SVSPP==spp]
+        catch.data$EXPCATCHWT <- catch.data$EXPCATCHWT*species$FALLWT[species$SVSPP==spp]
       }
       if(catch.data$CRUISE6[1] %in% spring.cruises){
-        catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009]*species$SPRNUM[species$SVSPP==spp]
-        catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009]*species$SPRWT[species$SVSPP==spp]
+        catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM*species$SPRNUM[species$SVSPP==spp]
+        catch.data$EXPCATCHWT <- catch.data$EXPCATCHWT*species$SPRWT[species$SVSPP==spp]
       }
     }
   } 
   #Albatross conversion to Bigelow series
-  if(do.Bigelow & !do.BigLen){
+  if(do.Bigelow & !do.BigLen & any(catch.data$EST_YEAR<2009)){
     if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
       if(catch.data$CRUISE6[1] %in% fall.cruises){
-        catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009]*species$FALLNUM[species$SVSPP==spp]
-        catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009]*species$FALLWT[species$SVSPP==spp]
+        catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM*species$FALLNUM[species$SVSPP==spp]
+        catch.data$EXPCATCHWT <- catch.data$EXPCATCHWT*species$FALLWT[species$SVSPP==spp]
       }
       if(catch.data$CRUISE6[1] %in% spring.cruises){
-        catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009]*species$SPRNUM[species$SVSPP==spp]
-        catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009]*species$SPRWT[species$SVSPP==spp]
+        catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM*species$SPRNUM[species$SVSPP==spp]
+        catch.data$EXPCATCHWT <- catch.data$EXPCATCHWT*species$SPRWT[species$SVSPP==spp]
       }
     }
   }
