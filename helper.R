@@ -53,7 +53,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   q.sta <- paste("select cruise6, stratum, tow, station, shg, svvessel, svgear, est_year, est_month, est_day, ",
                  "substr(est_time,1,2) || substr(est_time,4,2) as time, towdur, dopdistb, dopdistw, avgdepth, ",
                  " statype, haul, gearcond, type_code, operation_code, gear_code, acquisition_code,",
-                 "area, bottemp, beglat, beglon from svdbs.union_fscs_svsta ",
+                 "area, bottemp, decdeg_beglat, decdeg_beglon from svdbs.union_fscs_svsta ",
                  "where cruise6 = ", paste(survey)
                  #this would only get one year of survey data! option to fix below
                  #"where cruise6 in ('", paste(survey, collapse = "','"), "')"
