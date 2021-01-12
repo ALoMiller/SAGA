@@ -704,7 +704,7 @@ server = function(input, output, session){
     print(dim(len.view))
     #adjust length range and report in console
     #if(min(len.range)<len.view$MINL | max(len.range)>len.view$MAXL) print("Adjusting user requested lengths to range of observed values")
-    #if(min(len.range)<len.view$MINL) len.range <- len.range[which(len.range>=len.view$MINL)]data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAABzElEQVR42u2Wy07CQBhGeRl3iF2Bz+DaRE0UNsYn0Z2vIE+hxLglMZq4IwYpV4G23JGrLS7GOTWsDEzbNMZFJ/l3c843l6bzx2L/aWhaaiehJTPxRPIysZe6DlIuKx24PIXuaqmDw+Ozm9u7e71QeHVKpbIIUrA4cOFU7vToJJOVkK3rFVEu/1SlUvVVaw4HLpxbd87R5HIPOlC1WhO1Wl3U6w23Go13T7WeD4sDF07cG4O5l2LxzQFC0my2RKvVFu22Icv0WIbLwOLAJZ2ruLZ/tXnH8qNgtUBITLMjOp2e6Hb7otcbeCrmwsDiwIUT99ZgJhqG5cL9/lAMh2MxGn2I8XjiqZgLA4sDF05lMKsEGAxGrmgymYnpdC5ms4WnYi4MLA5cOJXBHBGrBUQyny/FYvEplkvbUzEXBhYHLpzKYFbIUbFqBMhse+WrYGBx4MKpDObj4J5YMatH5DhfvgoGFgcunMpgvkyOiPta7zZIMCwOXDij4Cg4Cv6bYJ5F+V91wg42TUvxLMrHOp9/1MMOxrm1EaA9SacvspbVtcP6ZeLCqWz6aMxO0+fZp+cXdu4EfSRgceBSNnu/2lt5L4HbW1g/7W00ohHW+AYpkWmxvX/prAAAAABJRU5ErkJggg==
+    #if(min(len.range)<len.view$MINL) len.range <- len.range[which(len.range>=len.view$MINL)]
     #if(max(len.range)>len.view$MAXL) len.range <- len.range[which(len.range<=len.view$MAXL)]
     #if(input$minLength<len.view$MINL | input$maxLength>len.view$MAXL) print(c("New range: ",len.range))
     #print(survey.cruises$CRUISE6[survey.cruises$SEASON == input$season ])
