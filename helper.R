@@ -108,6 +108,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   catch.data$EXPCATCHWT=ifelse(is.na(catch.data$EXPCATCHWT),0,catch.data$EXPCATCHWT)
   #There seems to be some dangling NA causing some problems in 2011.
   catch.data=catch.data[!is.na(catch.data$CRUISE6),]
+  #Remove instances of infinite catch (I can't believe we have to check for this!)
+  catch.data=catch.data[is.finite(catch.data$EXPCATCHNUM) & is.finite(catch.data$EXPCATCHWT),]
   
   
   #gear conversion - expand catch using a particular gear by the gear conversion factor.
