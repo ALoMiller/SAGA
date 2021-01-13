@@ -10,7 +10,6 @@ library(ggplot2)
 #library(sf)
 #library(mapview)
 
-#CHANGE TO YOUR PASSWORD AND USER NAME!!!!! **************************************************
 Sys.setenv(ORACLE_HOME="/ora1/app/oracle/product/11.2.0/dbhome_1")
 #webshot::install_phantomjs()
 
@@ -237,6 +236,7 @@ ui <-
                    # br(),
                    # br(),
                    downloadButton('downloadMapHTML', 'Download Map (.html)'),
+                   h5(strong('**NOTE: Map is of raw catch data and does not include calibrations [yet].')),
                    br(),
                    br(),
                    h5(strong("User Inputs")),
@@ -904,7 +904,9 @@ server = function(input, output, session){
             p1<-ggplot2::ggplot(Ind.out, aes(x=Year, y=Wt)) +
               ggplot2::geom_line() +
               ggplot2::geom_ribbon(data=ci,aes(ymin=lci,ymax=uci),alpha=0.3) +
-              ggplot2::theme_bw()
+              ggplot2::theme_bw() +
+              ggplot2::ggtitle("Aggregate Indices (*Does not use length critera)")
+              
             
             ciNum=data.frame(Ind.out,"lci"=Ind.out$Num-1.96*(sqrt(Ind.out$VarNum))  #/Ind.out$Tows
                              ,"uci"=Ind.out$Num+1.96*(sqrt(Ind.out$VarNum) ))  #/Ind.out$Tows
