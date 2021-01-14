@@ -85,7 +85,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   sta.view$AREA_SWEPT_WINGS_MEAN_NM2=ifelse(!is.na(sta.view$AREA_SWEPT_WINGS_MEAN_KM2)
                                             ,sta.view$AREA_SWEPT_WINGS_MEAN_KM2*0.539957^2,NA) #change from km to nm
   sta.view$AREA_SWEPT_WINGS_MEAN_NM2[which(is.na(sta.view$AREA_SWEPT_WINGS_MEAN_NM2))] <- tow_swept_area #if no tow eval data, uses default
-  sta.view$SWEPT_AREA_RATIO <- tow_swept_area/sta.view$AREA_SWEPT_WINGS_MEAN_NM2 #proportion of default swept area for that particular tow
+  #Need an error trap here for 0 wingspread case...
+  sta.view$SWEPT_AREA_RATIO <- ifelse(sta.view$AREA_SWEPT_WINGS_MEAN_NM2>0 ,tow_swept_area/sta.view$AREA_SWEPT_WINGS_MEAN_NM2,1) #proportion of default swept area for that particular tow
   str.size$ExpArea <- str.size$STRATUM_AREA/tow_swept_area #effectively the total number of possible tows in a stratum
   
   #There is some garbage in the sta.view dataframe for 2011 - no idea where it comes from, but you can check it with this:
@@ -110,7 +111,6 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   catch.data=catch.data[!is.na(catch.data$CRUISE6),]
   #Remove instances of infinite catch (I can't believe we have to check for this!)
   catch.data=catch.data[is.finite(catch.data$EXPCATCHNUM) & is.finite(catch.data$EXPCATCHWT),]
-  
   
   #gear conversion - expand catch using a particular gear by the gear conversion factor.
   if(any(catch.data$SVGEAR %in% c(41,45))) { #This is an error trap for no gear of this type being in catch data
