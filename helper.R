@@ -36,13 +36,14 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
 )
 {
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  options(stringsAsFactors = F)
   # *********** sql queries ***************#
   #Stratum information required to stratify (stratum area, etc)
   strata <- ifelse(nchar(strata)<5,paste0('0', strata),strata) #fix for when this is run twice - it adds another 0 and causes many errors
   stratum.sizes.q <- paste("select stratum, stratum_area, strgrp_desc, stratum_name from svdbs.svmstrata where STRATUM IN ('", 
                            paste(strata, collapse = "','"), "')"," order by stratum", sep = '')
   str.size <- sqlQuery(oc,stratum.sizes.q)
-  print(survey)
+  #print(survey)
   
   #if(as.integer(substr(paste(survey),1,4))<2009) { #TOGA is not needed for pre Bigelow years
   #  TowCoding=paste0( " and STATYPE <= ",S," and HAUL <= ",H," and GEARCOND <= ", G) 
@@ -52,7 +53,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   q.sta <- paste("select cruise6, stratum, tow, station, shg, svvessel, svgear, est_year, est_month, est_day, ",
                  "substr(est_time,1,2) || substr(est_time,4,2) as time, towdur, dopdistb, dopdistw, avgdepth, ",
                  " statype, haul, gearcond, type_code, operation_code, gear_code, acquisition_code,",
-                 "area, bottemp, beglat, beglon from svdbs.union_fscs_svsta ",
+                 "area, bottemp, decdeg_beglat, decdeg_beglon from svdbs.union_fscs_svsta ",
                  "where cruise6 = ", paste(survey)
                  #this would only get one year of survey data! option to fix below
                  #"where cruise6 in ('", paste(survey, collapse = "','"), "')"
@@ -61,14 +62,14 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                  ," order by cruise6, stratum, tow, station", sep = '')
   
   sta.view <- sqlQuery(oc,q.sta) 
-  print(head(sta.view))
+  #print(head(sta.view))
   shg = cbind.data.frame(S= as.integer(substr(sta.view$SHG,1,1)),H = as.integer(substr(sta.view$SHG,2,2)),G = as.integer(substr(sta.view$SHG,3,3)))
   toga = cbind.data.frame(T = sta.view$TYPE_CODE, O = sta.view$OPERATION_CODE, G = sta.view$GEAR_CODE, A = sta.view$ACQUISITION_CODE)
   #SHG OR TOGA filter below
   if(as.integer(substr(paste(survey),1,4))<2009) sta.view = sta.view[shg$S <= S & shg$H <= H & shg$G <= G,]
   else sta.view = sta.view[toga$T <= Type & toga$O <= Operation & toga$G <= Gear,] #A not used
-  print("sta.view")
-  print(head(sta.view))
+  #print("sta.view")
+  #print(head(sta.view))
   temp <- str.size[match(sta.view$STRATUM, str.size$STRATUM),]
   sta.view <- cbind(sta.view, temp[,-1])
   
@@ -80,10 +81,17 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   temp2 <- sta.sweptarea[match(sta.view$STATION,sta.sweptarea$STATION),]
   tow_swept_area = ifelse(sta.view$SVVESSEL[1]=='HB', 0.007, 0.01) #changes for smaller swept area during Bigelow years
   sta.view <- cbind(sta.view, AREA_SWEPT_WINGS_MEAN_KM2 = temp2[,c(-1,-2)])
-  sta.view$AREA_SWEPT_WINGS_MEAN_NM2 <- sta.view$AREA_SWEPT_WINGS_MEAN_KM2*0.539957^2 #change from km to nm
+  #Early years don't seem to have this variable!
+  sta.view$AREA_SWEPT_WINGS_MEAN_NM2=ifelse(!is.na(sta.view$AREA_SWEPT_WINGS_MEAN_KM2)
+                                            ,sta.view$AREA_SWEPT_WINGS_MEAN_KM2*0.539957^2,NA) #change from km to nm
   sta.view$AREA_SWEPT_WINGS_MEAN_NM2[which(is.na(sta.view$AREA_SWEPT_WINGS_MEAN_NM2))] <- tow_swept_area #if no tow eval data, uses default
   sta.view$SWEPT_AREA_RATIO <- tow_swept_area/sta.view$AREA_SWEPT_WINGS_MEAN_NM2 #proportion of default swept area for that particular tow
   str.size$ExpArea <- str.size$STRATUM_AREA/tow_swept_area #effectively the total number of possible tows in a stratum
+  
+  #There is some garbage in the sta.view dataframe for 2011 - no idea where it comes from, but you can check it with this:
+  #print(sta.view[which(is.na(sta.view$STRATUM)),])
+  sta.view<-sta.view[which(!is.na(sta.view$STRATUM)),] #this should remove it.
+  
   
   #CATCH data
   q.cat <- paste("select cruise6, stratum, tow, station, svspp, catchsex, expcatchwt, expcatchnum from svdbs.union_fscs_svcat ",
@@ -98,64 +106,69 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   #convert NA to 0 in catch number and weight
   catch.data$EXPCATCHNUM=ifelse(is.na(catch.data$EXPCATCHNUM),0,catch.data$EXPCATCHNUM)
   catch.data$EXPCATCHWT=ifelse(is.na(catch.data$EXPCATCHWT),0,catch.data$EXPCATCHWT)
+  #There seems to be some dangling NA causing some problems in 2011.
+  catch.data=catch.data[!is.na(catch.data$CRUISE6),]
+  #Remove instances of infinite catch (I can't believe we have to check for this!)
+  catch.data=catch.data[is.finite(catch.data$EXPCATCHNUM) & is.finite(catch.data$EXPCATCHWT),]
+  
   
   #gear conversion - expand catch using a particular gear by the gear conversion factor.
   if(any(catch.data$SVGEAR %in% c(41,45))) { #This is an error trap for no gear of this type being in catch data
     catch.data$EXPCATCHNUM[which(is.element(catch.data$SVGEAR, c(41,45)))] <- 
-      gcf.n * catch.data$EXPCATCHNUM[which(is.element(catch.data$SVGEAR, c(41,45)))]
+      as.numeric(gcf.n) * catch.data$EXPCATCHNUM[which(is.element(catch.data$SVGEAR, c(41,45)))]
     catch.data$EXPCATCHWT[which(is.element(catch.data$SVGEAR, c(41,45)))] <- 
-      gcf.w * catch.data$EXPCATCHWT[which(is.element(catch.data$SVGEAR, c(41,45)))]
+      as.numeric(gcf.w) * catch.data$EXPCATCHWT[which(is.element(catch.data$SVGEAR, c(41,45)))]
   }
   #door conversion 
   if(any(catch.data$YEAR< 1985)) { #This is an error trap for no years < 1985
     catch.data$EXPCATCHNUM[which(catch.data$YEAR< 1985)] <- 
-      dcf.n * catch.data$EXPCATCHNUM[which(catch.data$YEAR< 1985)]
+      as.numeric(dcf.n) * catch.data$EXPCATCHNUM[which(catch.data$YEAR< 1985)]
     catch.data$EXPCATCHWT[which(catch.data$YEAR< 1985)] <- 
-      dcf.w * catch.data$EXPCATCHWT[which(catch.data$YEAR< 1985)]
+      as.numeric(dcf.w) * catch.data$EXPCATCHWT[which(catch.data$YEAR< 1985)]
   }
   #vessel conversion
-  if(any(catch.data$SVVESSEL == 'DE')) { #This is an error trap for no DE vessel observations in catch data
+  if(any(catch.data$SVVESSEL[which(!is.na(catch.data$SVVESSEL))] == 'DE')) { #This is an error trap for no DE vessel observations in catch data
     catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')] <- 
-      vcf.n * catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')]
+      as.numeric(vcf.n) * catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')]
     catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')] <- 
-      vcf.w * catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')]
+      as.numeric(vcf.w) * catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')]
   }
   #Bigelow conversion to Albatross series
-  if(do.Albatross & !do.AlbLen){
+  if(do.Albatross & !do.AlbLen & any(catch.data$EST_YEAR>2008)){
     if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
       if(catch.data$CRUISE6[1] %in% fall.cruises){
-        catch.data$EXPCATCHNUM[catch.data$EST_YEAR>2008] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR>2008]/species$FALLNUM[species$SVSPP==spp]
-        catch.data$EXPCATCHWT[catch.data$EST_YEAR>2008] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR>2008]/species$FALLWT[species$SVSPP==spp]
+        catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM/species$FALLNUM[species$SVSPP==spp]
+        catch.data$EXPCATCHWT <- catch.data$EXPCATCHWT/species$FALLWT[species$SVSPP==spp]
       }
       if(catch.data$CRUISE6[1] %in% spring.cruises){
-        catch.data$EXPCATCHNUM[catch.data$EST_YEAR>2008] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR>2008]/species$SPRNUM[species$SVSPP==spp]
-        catch.data$EXPCATCHWT[catch.data$EST_YEAR>2008] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR>2008]/species$SPRWT[species$SVSPP==spp]
+        catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM/species$SPRNUM[species$SVSPP==spp]
+        catch.data$EXPCATCHWT <- catch.data$EXPCATCHWT/species$SPRWT[species$SVSPP==spp]
       }
     }
   } 
   #Albatross conversion to Bigelow series
-  if(do.Bigelow){
+  if(do.Bigelow & any(catch.data$EST_YEAR<2009)){
     if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
       if(catch.data$CRUISE6[1] %in% fall.cruises){
-        catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009]*species$FALLNUM[species$SVSPP==spp]
-        catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009]*species$FALLWT[species$SVSPP==spp]
+        catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM*species$FALLNUM[species$SVSPP==spp]
+        catch.data$EXPCATCHWT <- catch.data$EXPCATCHWT*species$FALLWT[species$SVSPP==spp]
       }
       if(catch.data$CRUISE6[1] %in% spring.cruises){
-        catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009]*species$SPRNUM[species$SVSPP==spp]
-        catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009]*species$SPRWT[species$SVSPP==spp]
+        catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM*species$SPRNUM[species$SVSPP==spp]
+        catch.data$EXPCATCHWT <- catch.data$EXPCATCHWT*species$SPRWT[species$SVSPP==spp]
       }
     }
   } 
   #Albatross conversion to Bigelow series
-  if(do.Bigelow & !do.BigLen){
+  if(do.Bigelow & !do.BigLen & any(catch.data$EST_YEAR<2009)){
     if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
       if(catch.data$CRUISE6[1] %in% fall.cruises){
-        catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009]*species$FALLNUM[species$SVSPP==spp]
-        catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009]*species$FALLWT[species$SVSPP==spp]
+        catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM*species$FALLNUM[species$SVSPP==spp]
+        catch.data$EXPCATCHWT <- catch.data$EXPCATCHWT*species$FALLWT[species$SVSPP==spp]
       }
       if(catch.data$CRUISE6[1] %in% spring.cruises){
-        catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHNUM[catch.data$EST_YEAR<2009]*species$SPRNUM[species$SVSPP==spp]
-        catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009] <- catch.data$EXPCATCHWT[catch.data$EST_YEAR<2009]*species$SPRWT[species$SVSPP==spp]
+        catch.data$EXPCATCHNUM <- catch.data$EXPCATCHNUM*species$SPRNUM[species$SVSPP==spp]
+        catch.data$EXPCATCHWT <- catch.data$EXPCATCHWT*species$SPRWT[species$SVSPP==spp]
       }
     }
   }
@@ -362,6 +375,10 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   out$expand = sum(M)/sum(M[which(m>0)]) #=1 if all strata are sampled
   #report warnings
   out$warnings=list(LengthRange=Lrange,UnusedStrata=out$out[,"stratum"][out$out[,"EXPCATCHNUM"]==0.0],UnsampledStrata=ZeroTows)
+  
+  
+  #Add the station data for use later in output 
+  out$catchdata=list(catch.data)
   #print(out$out)
   
   
