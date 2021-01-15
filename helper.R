@@ -66,8 +66,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   shg = cbind.data.frame(S= as.integer(substr(sta.view$SHG,1,1)),H = as.integer(substr(sta.view$SHG,2,2)),G = as.integer(substr(sta.view$SHG,3,3)))
   toga = cbind.data.frame(T = sta.view$TYPE_CODE, O = sta.view$OPERATION_CODE, G = sta.view$GEAR_CODE, A = sta.view$ACQUISITION_CODE)
   #SHG OR TOGA filter below
-  if(as.integer(substr(paste(survey),1,4))<2009) sta.view = sta.view[shg$S <= S & shg$H <= H & shg$G <= G,]
-  else sta.view = sta.view[toga$T <= Type & toga$O <= Operation & toga$G <= Gear,] #A not used
+  if(as.integer(substr(paste(survey),1,4))<2009) {sta.view = sta.view[shg$S <= S & shg$H <= H & shg$G <= G,]
+  } else sta.view = sta.view[toga$T <= Type & toga$O <= Operation & toga$G <= Gear,] #A not used
   #print("sta.view")
   #print(head(sta.view))
   temp <- str.size[match(sta.view$STRATUM, str.size$STRATUM),]
