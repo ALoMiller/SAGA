@@ -237,9 +237,6 @@ ui <-
                    # br(),
                    # br(),
                    downloadButton('downloadMapHTML', 'Download Map (.html)'),
-                   h5(strong('**NOTE: Map is of raw catch data and does not include calibrations [yet].')),
-                   br(),
-                   br(),
                    h5(strong("User Inputs")),
                    #verbatimTextOutput( outputId = "text")
                    htmlOutput("text")
@@ -465,7 +462,6 @@ server = function(input, output, session){
   })
   
   output$selection <- renderPrint({
-    if(is.null(get_data())){return ()}
     input$mychooser$right
   })
   # print list of input events
@@ -853,71 +849,31 @@ server = function(input, output, session){
     # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     # #                                       MAP section 
     # #______________________________________________________________________________________________________
-    # observeEvent(input$runBtn,{ #if run button is pushed: #DRH not sure why we need 2 observe events??? 
-    
-    get_data <- reactive({ #This is the get data function for the map
-      #Get user inputs
+    foundational.map <- reactive({
       strata <- input$mychooser$right
       strata <- ifelse(nchar(strata)<5,paste0('0', strata),strata) #fix for when this is run twice - it adds another 0 and causes many errors
-      # S<-input$S #already done above 
-      # H<-input$H
-      # G<-input$G 
-      #develop sql query for data using input criteria
-      q.sta <- paste0("select id, cruise6, stratum, tow, station, shg, svvessel, svgear, est_year, est_month, est_day, ",
-                      "substr(est_time,1,2) || substr(est_time,4,2) as time, towdur, dopdistb, dopdistw, avgdepth, ",
-                      "area, bottemp, botsalin, decdeg_beglat, decdeg_beglon from union_fscs_svsta ",
-                      "where cruise6 IN (", paste(c(fall.cruises,spring.cruises), collapse = ','), ")",
-                      " and STRATUM IN ('", paste(strata, collapse = "','"), "')",
-                      #" and shg<= '136'", 
-                      " and STATYPE <= ",S," and HAUL <= ",H," and GEARCOND <= ", G, #changing this to allow user specified SHG choices
-                      " and est_year between " , input$years[1], " AND ", input$years[2], " order by cruise6, stratum, tow, station")
-      sta.view <- sqlQuery(sole,q.sta, as.is = c(TRUE, rep(FALSE,22))) 
-      sta.view$SEASON <- rep('SPRING',NROW(sta.view))
-      sta.view$SEASON[sta.view$CRUISE6 %in% fall.cruises] <- 'FALL'
-      
-      q.cat <- paste0("select id, cruise6, stratum, tow, station, svspp, catchsex, expcatchwt, expcatchnum from union_fscs_svcat ",
-                      "where cruise6 IN (", paste(c(fall.cruises,spring.cruises), collapse = ','), ")",
-                      " and STRATUM IN ('", paste(strata, collapse = "','"), "')",
-                      "and svspp = ", species$SVSPP[species$COMNAME==input$species], 
-                      " order by cruise6, stratum, tow, station", sep = '')
-      cat.view <- sqlQuery(sole,q.cat, as.is = c(TRUE, rep(FALSE,8)))
-      catch.data <- merge(sta.view, cat.view, by = 'ID',  all.x = T, all.y=F)
-      catch.data$EXPCATCHNUM[is.na(catch.data$EXPCATCHNUM)] <- 0
-      catch.data$EXPCATCHWT[is.na(catch.data$EXPCATCHWT)] <- 0
+      season.map <- input$season
       bins.points <- c(10,25,50,75,100000000000)    # arbitrary decisions regarding catch/tow bins for right panel plot - "<5","5-10","10-50","50-100",">100"
-      catch.data$bubbleSize = rep(NA,NROW(catch.data)) 
-      catch.data$bubbleSize[catch.data$EXPCATCHNUM>0] <- col.bin(catch.data$EXPCATCHNUM[catch.data$EXPCATCHNUM>0], bins.points[1:5])
-      catch.data$bubbleSize <- 1+(catch.data$bubbleSize-1)/2     # rescaling the size of the points
-      
-      catch.data <- catch.data[catch.data$SEASON %in% input$season,]
-      print(names(catch.data))
-      #print(table(catch.data$SEASON))  
-      return(catch.data)
-      
-    }) #end of get_data
-    
-    foundational.map <- reactive({
-      #builds the map from sql query and inputs
-      catch.data <- get_data()
-      # print(table(catch.data$SEASON))
+      CatchData$bubbleSize = rep(NA,NROW(CatchData)) 
+      CatchData$bubbleSize[CatchData$EXPCATCHNUM>0] <- col.bin(CatchData$EXPCATCHNUM[CatchData$EXPCATCHNUM>0], bins.points[1:5])
+      CatchData$bubbleSize <- 1+(CatchData$bubbleSize-1)/2     # rescaling the size of the points
+      print(head(CatchData))
       leaflet() %>% # create a leaflet map widget
         addProviderTiles("CartoDB.Positron") %>%
         setView(-71, 40, 6) %>% # map location
         addPolylines(data = Strata, color = "grey", weight = 1.5) %>%
-        addCircles(color='navy',catch.data$DECDEG_BEGLON[catch.data$EXPCATCHNUM>0],catch.data$DECDEG_BEGLAT[catch.data$EXPCATCHNUM>0],
-                   popup = paste("Year: ",catch.data$EST_YEAR[catch.data$EXPCATCHNUM>0], "<br>",
-                                 "Station: ",catch.data$STATION.x[catch.data$EXPCATCHNUM>0], "<br>",
-                                 "Stratum: ",catch.data$STRATUM.x[catch.data$EXPCATCHNUM>0], "<br>",
-                                 "Tow: ",catch.data$TOW.x[catch.data$EXPCATCHNUM>0], "<br>",
-                                 "Catch Wt (kg): ",catch.data$EXPCATCHWT[catch.data$EXPCATCHNUM>0], "<br>",
-                                 "Catch Num: ",catch.data$EXPCATCHNUM[catch.data$EXPCATCHNUM>0], "<br>",
-                                 "Season: ",catch.data$SEASON[catch.data$EXPCATCHNUM>0]),
+        addCircles(color='navy',CatchData$BEGLON[CatchData$EXPCATCHNUM>0],CatchData$BEGLAT[CatchData$EXPCATCHNUM>0],
+                   popup = paste("Year: ",CatchData$EST_YEAR[CatchData$EXPCATCHNUM>0], "<br>",
+                                 "Station: ",CatchData$STATION[CatchData$EXPCATCHNUM>0], "<br>",
+                                 "Stratum: ",CatchData$STRATUM[CatchData$EXPCATCHNUM>0], "<br>",
+                                 "Tow: ",CatchData$TOW[CatchData$EXPCATCHNUM>0], "<br>",
+                                 "Catch Wt (kg): ",CatchData$EXPCATCHWT[CatchData$EXPCATCHNUM>0], "<br>",
+                                 "Catch Num: ",CatchData$EXPCATCHNUM[CatchData$EXPCATCHNUM>0], "<br>",
+                                 "Season: ",season.map),
                    stroke = FALSE, fillOpacity = 0.4,
-                   radius = catch.data$bubbleSize[catch.data$EXPCATCHNUM>0]*5000)
+                   radius = CatchData$bubbleSize[CatchData$EXPCATCHNUM>0]*5000)
       
     })
-    
-    #print(str(foundational.map()))
     
     output$myMap = leaflet::renderLeaflet({
       foundational.map() #This just calls the reactive map
