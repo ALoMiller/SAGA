@@ -205,7 +205,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     len.data <- merge(catch.data, len.view, by = c('CRUISE6','STRATUM','TOW','STATION','CATCHSEX'),  all.x=T, all.y = F)
     len.data$EXPNUMLEN=ifelse(is.na(len.data$EXPNUMLEN),0,len.data$EXPNUMLEN)
     
-    if(swept_area) len.data$EXPNUMLEN_ADJ = len.data$EXPNUMLEN * len.data$SWEPT_AREA_RATIO
+    if(swept_area) len.data$EXPNUMLEN = len.data$EXPNUMLEN * len.data$SWEPT_AREA_RATIO
     
     #cal.Nal.hat.stratum = Nal.hat.stratum
     for(i in 1:length(lengths))
@@ -283,6 +283,8 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       age.view <- sqlQuery(oc,q.age)
       #age.data <- merge(len.data, age.view, by = c('CRUISE6','STRATUM','TOW','STATION','LENGTH'),  all.x = T, all.y=F)
       WtLenEx<- merge(len.data, age.view, by = c('CRUISE6','STRATUM','TOW','STATION','LENGTH'),  all.x = T, all.y=F)
+      if(swept_area) WtLenEx$EXPNUMLEN = WtLenEx$EXPNUMLEN * WtLenEx$SWEPT_AREA_RATIO
+      
       #Need to generate age-length keys here and then apply to the length composition
       
       #Need to make sure we have data at this stage to proceed (requires more than one age too)
