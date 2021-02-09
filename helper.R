@@ -120,11 +120,11 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       as.numeric(gcf.w) * catch.data$EXPCATCHWT[which(is.element(catch.data$SVGEAR, c(41,45)))]
   }
   #door conversion 
-  if(any(catch.data$YEAR< 1985)) { #This is an error trap for no years < 1985
-    catch.data$EXPCATCHNUM[which(catch.data$YEAR< 1985)] <- 
-      as.numeric(dcf.n) * catch.data$EXPCATCHNUM[which(catch.data$YEAR< 1985)]
-    catch.data$EXPCATCHWT[which(catch.data$YEAR< 1985)] <- 
-      as.numeric(dcf.w) * catch.data$EXPCATCHWT[which(catch.data$YEAR< 1985)]
+  if(any(catch.data$EST_YEAR< 1985)) { #This is an error trap for no years < 1985
+    catch.data$EXPCATCHNUM[which(catch.data$EST_YEAR< 1985)] <- 
+      as.numeric(dcf.n) * catch.data$EXPCATCHNUM[which(catch.data$EST_YEAR< 1985)]
+    catch.data$EXPCATCHWT[which(catch.data$EST_YEAR< 1985)] <- 
+      as.numeric(dcf.w) * catch.data$EXPCATCHWT[which(catch.data$EST_YEAR< 1985)]
   }
   #vessel conversion
   if(any(catch.data$SVVESSEL[which(!is.na(catch.data$SVVESSEL))] == 'DE')) { #This is an error trap for no DE vessel observations in catch data
