@@ -1,0 +1,253 @@
+Date: 27 Mar 2018  Time: 10:18
+
+Case ID:           
+
+Station File:      C:\USERS\CHRIS.LEGAULT\DOCUMENTS\WORKING\ASSESSMENTS\YELLOWTAILFLOUNDER\SURVEY\GB\NEFSC_FALL\ASSESS_2018_CHECK\STATIONVIEW_105.TXT
+Merged Catch File: C:\USERS\CHRIS.LEGAULT\DOCUMENTS\WORKING\ASSESSMENTS\YELLOWTAILFLOUNDER\SURVEY\GB\NEFSC_FALL\ASSESS_2018_CHECK\MERGEDCATCH_105.TXT
+Age Data File:     C:\USERS\CHRIS.LEGAULT\DOCUMENTS\WORKING\ASSESSMENTS\YELLOWTAILFLOUNDER\SURVEY\GB\NEFSC_FALL\ASSESS_2018_CHECK\AGEVIEW_105.TXT
+Strata Data File:  C:\SAGA\SAGAV612\Master_Strata.txt
+Coastal Data File: C:\SAGA\SAGAV612\Coastal_Coord.txt
+
+Number of Stations:  163
+Number of Merged Catch Data Records:  161
+Minimum Length:         5
+Maximum Length:        47
+Number of Age Data Records:  208
+
+Set: 1
+Cruise: 201504
+Year: 2015
+Number Strata: 9
+
+
+Cruise:  201504   Stratum: 01130  Number Tows: 10
+    Cruise:  201504   Stratum: 01130   Tow:     001   Station: 0270   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01130   Tow:     002   Station: 0231   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01130   Tow:     003   Station: 0271   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01130   Tow:     004   Station: 0263   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01130   Tow:     005   Station: 0249   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01130   Tow:     006   Station: 0256   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01130   Tow:     007   Station: 0266   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01130   Tow:     008   Station: 0255   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01130   Tow:     009   Station: 0254   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01130   Tow:     010   Station: 0264   Numbers:      1.000 Weight:    0.003
+
+Cruise:  201504   Stratum: 01140  Number Tows: 4
+    Cruise:  201504   Stratum: 01140   Tow:     001   Station: 0269   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01140   Tow:     002   Station: 0250   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01140   Tow:     003   Station: 0265   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01140   Tow:     004   Station: 0251   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201504   Stratum: 01150  Number Tows: 3
+    Cruise:  201504   Stratum: 01150   Tow:     002   Station: 0252   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01150   Tow:     003   Station: 0253   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01150   Tow:     004   Station: 0268   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201504   Stratum: 01160  Number Tows: 14
+    Cruise:  201504   Stratum: 01160   Tow:     001   Station: 0285   Numbers:      1.000 Weight:    0.501
+    Cruise:  201504   Stratum: 01160   Tow:     002   Station: 0279   Numbers:      3.000 Weight:    1.463
+    Cruise:  201504   Stratum: 01160   Tow:     003   Station: 0273   Numbers:      1.000 Weight:    0.422
+    Cruise:  201504   Stratum: 01160   Tow:     004   Station: 0278   Numbers:      2.000 Weight:    0.631
+    Cruise:  201504   Stratum: 01160   Tow:     005   Station: 0280   Numbers:     10.000 Weight:    3.386
+    Cruise:  201504   Stratum: 01160   Tow:     006   Station: 0310   Numbers:     14.000 Weight:    3.884
+    Cruise:  201504   Stratum: 01160   Tow:     007   Station: 0281   Numbers:     86.000 Weight:   38.647
+    Cruise:  201504   Stratum: 01160   Tow:     008   Station: 0309   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01160   Tow:     009   Station: 0307   Numbers:      2.000 Weight:    0.468
+    Cruise:  201504   Stratum: 01160   Tow:     010   Station: 0282   Numbers:      3.000 Weight:    0.861
+    Cruise:  201504   Stratum: 01160   Tow:     011   Station: 0308   Numbers:      5.000 Weight:    1.701
+    Cruise:  201504   Stratum: 01160   Tow:     012   Station: 0311   Numbers:      1.000 Weight:    0.237
+    Cruise:  201504   Stratum: 01160   Tow:     014   Station: 0272   Numbers:      4.000 Weight:    1.534
+    Cruise:  201504   Stratum: 01160   Tow:     015   Station: 0284   Numbers:      3.000 Weight:    0.903
+
+Cruise:  201504   Stratum: 01170  Number Tows: 4
+    Cruise:  201504   Stratum: 01170   Tow:     001   Station: 0313   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01170   Tow:     002   Station: 0276   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01170   Tow:     003   Station: 0314   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01170   Tow:     004   Station: 0275   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201504   Stratum: 01180  Number Tows: 4
+    Cruise:  201504   Stratum: 01180   Tow:     002   Station: 0312   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01180   Tow:     003   Station: 0277   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01180   Tow:     004   Station: 0274   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01180   Tow:     005   Station: 0316   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201504   Stratum: 01190  Number Tows: 9
+    Cruise:  201504   Stratum: 01190   Tow:     001   Station: 0290   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01190   Tow:     002   Station: 0298   Numbers:      1.000 Weight:    0.578
+    Cruise:  201504   Stratum: 01190   Tow:     004   Station: 0286   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01190   Tow:     005   Station: 0259   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01190   Tow:     006   Station: 0258   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01190   Tow:     007   Station: 0262   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01190   Tow:     008   Station: 0257   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01190   Tow:     009   Station: 0299   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01190   Tow:     010   Station: 0261   Numbers:      1.000 Weight:    0.452
+
+Cruise:  201504   Stratum: 01200  Number Tows: 6
+    Cruise:  201504   Stratum: 01200   Tow:     001   Station: 0289   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01200   Tow:     002   Station: 0291   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01200   Tow:     003   Station: 0300   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01200   Tow:     006   Station: 0297   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01200   Tow:     007   Station: 0295   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01200   Tow:     008   Station: 0288   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201504   Stratum: 01210  Number Tows: 4
+    Cruise:  201504   Stratum: 01210   Tow:     001   Station: 0303   Numbers:     10.000 Weight:    3.246
+    Cruise:  201504   Stratum: 01210   Tow:     002   Station: 0301   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01210   Tow:     003   Station: 0306   Numbers:      0.000 Weight:    0.000
+    Cruise:  201504   Stratum: 01210   Tow:     004   Station: 0296   Numbers:      0.000 Weight:    0.000
+
+Set: 2
+Cruise: 201604
+Year: 2016
+Number Strata: 9
+
+
+Cruise:  201604   Stratum: 01130  Number Tows: 10
+    Cruise:  201604   Stratum: 01130   Tow:     001   Station: 0263   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01130   Tow:     002   Station: 0265   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01130   Tow:     003   Station: 0264   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01130   Tow:     004   Station: 0269   Numbers:      1.000 Weight:    0.164
+    Cruise:  201604   Stratum: 01130   Tow:     005   Station: 0232   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01130   Tow:     006   Station: 0266   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01130   Tow:     007   Station: 0268   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01130   Tow:     008   Station: 0231   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01130   Tow:     010   Station: 0274   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01130   Tow:     011   Station: 0267   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201604   Stratum: 01140  Number Tows: 4
+    Cruise:  201604   Stratum: 01140   Tow:     001   Station: 0273   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01140   Tow:     002   Station: 0270   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01140   Tow:     003   Station: 0229   Numbers:      2.000 Weight:    0.323
+    Cruise:  201604   Stratum: 01140   Tow:     004   Station: 0230   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201604   Stratum: 01150  Number Tows: 3
+    Cruise:  201604   Stratum: 01150   Tow:     001   Station: 0271   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01150   Tow:     002   Station: 0272   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01150   Tow:     003   Station: 0275   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201604   Stratum: 01160  Number Tows: 14
+    Cruise:  201604   Stratum: 01160   Tow:     002   Station: 0285   Numbers:      1.000 Weight:    0.362
+    Cruise:  201604   Stratum: 01160   Tow:     003   Station: 0279   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01160   Tow:     004   Station: 0287   Numbers:      3.000 Weight:    0.811
+    Cruise:  201604   Stratum: 01160   Tow:     005   Station: 0292   Numbers:     28.000 Weight:   10.582
+    Cruise:  201604   Stratum: 01160   Tow:     006   Station: 0294   Numbers:     10.000 Weight:    4.703
+    Cruise:  201604   Stratum: 01160   Tow:     007   Station: 0286   Numbers:      1.000 Weight:    0.276
+    Cruise:  201604   Stratum: 01160   Tow:     008   Station: 0293   Numbers:      5.000 Weight:    1.323
+    Cruise:  201604   Stratum: 01160   Tow:     009   Station: 0295   Numbers:      1.000 Weight:    0.501
+    Cruise:  201604   Stratum: 01160   Tow:     010   Station: 0284   Numbers:      6.000 Weight:    2.241
+    Cruise:  201604   Stratum: 01160   Tow:     011   Station: 0280   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01160   Tow:     012   Station: 0283   Numbers:      2.000 Weight:    0.681
+    Cruise:  201604   Stratum: 01160   Tow:     013   Station: 0291   Numbers:     23.000 Weight:    9.624
+    Cruise:  201604   Stratum: 01160   Tow:     014   Station: 0288   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01160   Tow:     015   Station: 0290   Numbers:      9.000 Weight:    5.238
+
+Cruise:  201604   Stratum: 01170  Number Tows: 4
+    Cruise:  201604   Stratum: 01170   Tow:     002   Station: 0276   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01170   Tow:     003   Station: 0282   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01170   Tow:     004   Station: 0281   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01170   Tow:     005   Station: 0306   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201604   Stratum: 01180  Number Tows: 4
+    Cruise:  201604   Stratum: 01180   Tow:     001   Station: 0308   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01180   Tow:     002   Station: 0307   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01180   Tow:     003   Station: 0278   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01180   Tow:     004   Station: 0277   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201604   Stratum: 01190  Number Tows: 9
+    Cruise:  201604   Stratum: 01190   Tow:     002   Station: 0238   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01190   Tow:     004   Station: 0259   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01190   Tow:     005   Station: 0262   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01190   Tow:     007   Station: 0240   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01190   Tow:     008   Station: 0239   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01190   Tow:     009   Station: 0258   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01190   Tow:     010   Station: 0234   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01190   Tow:     011   Station: 0261   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01190   Tow:     012   Station: 0297   Numbers:      1.000 Weight:    0.291
+
+Cruise:  201604   Stratum: 01200  Number Tows: 6
+    Cruise:  201604   Stratum: 01200   Tow:     001   Station: 0257   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01200   Tow:     003   Station: 0241   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01200   Tow:     004   Station: 0298   Numbers:      1.000 Weight:    0.380
+    Cruise:  201604   Stratum: 01200   Tow:     005   Station: 0235   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01200   Tow:     007   Station: 0237   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01200   Tow:     008   Station: 0256   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201604   Stratum: 01210  Number Tows: 4
+    Cruise:  201604   Stratum: 01210   Tow:     001   Station: 0299   Numbers:    110.000 Weight:   31.912
+    Cruise:  201604   Stratum: 01210   Tow:     002   Station: 0254   Numbers:      3.000 Weight:    0.840
+    Cruise:  201604   Stratum: 01210   Tow:     004   Station: 0246   Numbers:      0.000 Weight:    0.000
+    Cruise:  201604   Stratum: 01210   Tow:     005   Station: 0313   Numbers:      0.000 Weight:    0.000
+
+Set: 3
+Cruise: 201704
+Year: 2017
+Number Strata: 9
+
+
+Cruise:  201704   Stratum: 01130  Number Tows: 10
+    Cruise:  201704   Stratum: 01130   Tow:     001   Station: 0079   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01130   Tow:     002   Station: 0093   Numbers:      1.000 Weight:    0.007
+    Cruise:  201704   Stratum: 01130   Tow:     003   Station: 0027   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01130   Tow:     004   Station: 0028   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01130   Tow:     005   Station: 0078   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01130   Tow:     006   Station: 0088   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01130   Tow:     007   Station: 0087   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01130   Tow:     008   Station: 0080   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01130   Tow:     009   Station: 0089   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01130   Tow:     010   Station: 0081   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201704   Stratum: 01140  Number Tows: 4
+    Cruise:  201704   Stratum: 01140   Tow:     001   Station: 0082   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01140   Tow:     002   Station: 0084   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01140   Tow:     003   Station: 0029   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01140   Tow:     004   Station: 0083   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201704   Stratum: 01150  Number Tows: 3
+    Cruise:  201704   Stratum: 01150   Tow:     001   Station: 0030   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01150   Tow:     002   Station: 0085   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01150   Tow:     003   Station: 0086   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201704   Stratum: 01160  Number Tows: 10
+    Cruise:  201704   Stratum: 01160   Tow:     001   Station: 0040   Numbers:      3.000 Weight:    0.878
+    Cruise:  201704   Stratum: 01160   Tow:     002   Station: 0059   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01160   Tow:     003   Station: 0095   Numbers:      2.000 Weight:    0.642
+    Cruise:  201704   Stratum: 01160   Tow:     004   Station: 0094   Numbers:      2.000 Weight:    0.542
+    Cruise:  201704   Stratum: 01160   Tow:     005   Station: 0096   Numbers:     13.000 Weight:    4.340
+    Cruise:  201704   Stratum: 01160   Tow:     008   Station: 0032   Numbers:      9.000 Weight:    4.010
+    Cruise:  201704   Stratum: 01160   Tow:     009   Station: 0038   Numbers:      4.000 Weight:    1.380
+    Cruise:  201704   Stratum: 01160   Tow:     010   Station: 0037   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01160   Tow:     012   Station: 0061   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01160   Tow:     013   Station: 0098   Numbers:      1.000 Weight:    0.430
+
+Cruise:  201704   Stratum: 01170  Number Tows: 4
+    Cruise:  201704   Stratum: 01170   Tow:     001   Station: 0041   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01170   Tow:     002   Station: 0033   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01170   Tow:     003   Station: 0036   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01170   Tow:     004   Station: 0031   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201704   Stratum: 01180  Number Tows: 4
+    Cruise:  201704   Stratum: 01180   Tow:     001   Station: 0039   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01180   Tow:     002   Station: 0042   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01180   Tow:     003   Station: 0034   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01180   Tow:     004   Station: 0035   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201704   Stratum: 01190  Number Tows: 5
+    Cruise:  201704   Stratum: 01190   Tow:     001   Station: 0097   Numbers:      4.000 Weight:    2.531
+    Cruise:  201704   Stratum: 01190   Tow:     002   Station: 0092   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01190   Tow:     005   Station: 0077   Numbers:      2.000 Weight:    0.460
+    Cruise:  201704   Stratum: 01190   Tow:     007   Station: 0090   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01190   Tow:     008   Station: 0099   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201704   Stratum: 01200  Number Tows: 4
+    Cruise:  201704   Stratum: 01200   Tow:     002   Station: 0125   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01200   Tow:     003   Station: 0127   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01200   Tow:     005   Station: 0124   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01200   Tow:     006   Station: 0126   Numbers:      0.000 Weight:    0.000
+
+Cruise:  201704   Stratum: 01210  Number Tows: 3
+    Cruise:  201704   Stratum: 01210   Tow:     002   Station: 0129   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01210   Tow:     003   Station: 0052   Numbers:      0.000 Weight:    0.000
+    Cruise:  201704   Stratum: 01210   Tow:     004   Station: 0128   Numbers:      0.000 Weight:    0.000
+Total Number of Strata in All Sets:   9
+Total Number of Tows in All Sets:     47
+
