@@ -227,8 +227,26 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     #summary(len.data$EXPNUMLEN)
     
     
+
     if(swept_area) len.data$EXPNUMLEN = len.data$EXPNUMLEN * len.data$SWEPT_AREA_RATIO
     #summary(len.data$EXPNUMLEN) # - this changes the median & upper quantiles a bit    
+
+    #gear conversion - expand numbers at length using a particular gear by the gear conversion factor.
+    if(any(len.data$SVGEAR %in% c(41,45))) { #This is an error trap for no gear of this type being in catch data
+      len.data$EXPNUMLEN[which(is.element(len.data$SVGEAR, c(41,45)))] <- 
+        as.numeric(gcf.n) * len.data$EXPNUMLEN[which(is.element(len.data$SVGEAR, c(41,45)))]
+    }
+    #door conversion 
+    if(any(len.data$EST_YEAR< 1985)) { #This is an error trap for no years < 1985
+      len.data$EXPNUMLEN[which(len.data$EST_YEAR< 1985)] <- 
+        as.numeric(dcf.n) * len.data$EXPNUMLEN[which(len.data$EST_YEAR< 1985)]
+    }
+    #vessel conversion
+    if(any(len.data$SVVESSEL[which(!is.na(len.data$SVVESSEL))] == 'DE')) { #This is an error trap for no DE vessel observations in catch data
+      len.data$EXPNUMLEN[which(len.data$SVVESSEL == 'DE')] <- 
+        as.numeric(vcf.n) * len.data$EXPNUMLEN[which(len.data$SVVESSEL == 'DE')]
+    }
+        
 
     #cal.Nal.hat.stratum = Nal.hat.stratum
     for(i in 1:length(lengths))
