@@ -371,8 +371,10 @@ server = function(input, output, session){
     
     switch(input$species,
            sliderInput("age1", "Select range of age(s):"
-                , min = species$MINA[MyRow], max = species$MAXA[MyRow]
-                , value = c(species$MINA[MyRow],species$MAXA[MyRow]),round=T, step=1 , sep = "")
+                , min = ifelse(!is.na(species$MINA[MyRow]),species$MINA[MyRow],-1)
+                , max = ifelse(!is.na(species$MAXA[MyRow]),species$MAXA[MyRow],-1)
+                , value = c(ifelse(!is.na(species$MINA[MyRow]),species$MINA[MyRow],-1),ifelse(!is.na(species$MAXA[MyRow]),species$MAXA[MyRow],-1))
+                ,round=T, step=1 , sep = "")
     )
     
   })
@@ -538,8 +540,8 @@ server = function(input, output, session){
     strata.in <- input$mychooser$right
     len.range <- c(input$len1[1]:input$len1[2])
     do.age=T
-    #print(input$age1)
-    if(!is.null(input$age1[1]) & !is.null(input$age1[2])) {
+    print(input$age1)
+    if(!is.null(any(input$age1)) & all(input$age1>=0)) {
       age.range <- c(input$age1[1]:input$age1[2])
     } else {
       do.age=F
@@ -738,16 +740,16 @@ server = function(input, output, session){
       names(Ind.out)=c("Year","Tows","Num","Wt","VarNum","VarWt")
       
       IAL.out=as.data.frame(IAL.out)
-      IAL.out[,ncol(IAL.out)]=IAL.out[,ncol(IAL.out)]*expnd #Expand the total to cover unsampled strata (if desired)
+      IAL.out[,2:ncol(IAL.out)]=IAL.out[,2:ncol(IAL.out)]*expnd #Expand the total to cover unsampled strata (if desired) %%%%% CHANGED 3/16/21 DRH
       names(IAL.out)=c('Year','nTows',paste(len.range,"cm",sep=""),'Total')
       
       VIAL.out=as.data.frame(VIAL.out)
-      VIAL.out[,ncol(VIAL.out)]=VIAL.out[,ncol(VIAL.out)]*expnd^2 #Expand the total to cover unsampled strata (if desired)
+      VIAL.out[,2:ncol(VIAL.out)]=VIAL.out[,2:ncol(VIAL.out)]*expnd^2 #Expand the total to cover unsampled strata (if desired)
       names(VIAL.out)=c('Year','nTows',paste(len.range,"cm",sep=""),'Total')
       
       IAA.out=as.data.frame(IAA.out)
       if(do.age) {
-        IAA.out[,ncol(IAA.out)]=IAA.out[,ncol(IAA.out)]*expnd #Expand the total to cover unsampled strata (if desired)
+        IAA.out[,2:ncol(IAA.out)]=IAA.out[,2:ncol(IAA.out)]*expnd #Expand the total to cover unsampled strata (if desired)
         names(IAA.out)=c('Year','nTows',paste0("Age",age.range),'Total')
       } else IAA.out="No ages"
       

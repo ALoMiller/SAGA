@@ -36,6 +36,9 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
 )
 {
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+  #if(as.integer(substr(paste(survey),1,4))==2020) return(out=list()) #There is no 2020 survey NEED TO WORK ON THIS 
+  
   options(stringsAsFactors = F)
   # *********** sql queries ***************#
   #Stratum information required to stratify (stratum area, etc)
@@ -43,11 +46,6 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   stratum.sizes.q <- paste("select stratum, stratum_area, strgrp_desc, stratum_name from svdbs.svmstrata where STRATUM IN ('", 
                            paste(strata, collapse = "','"), "')"," order by stratum", sep = '')
   str.size <- sqlQuery(oc,stratum.sizes.q)
-  #print(survey)
-  
-  #if(as.integer(substr(paste(survey),1,4))<2009) { #TOGA is not needed for pre Bigelow years
-  #  TowCoding=paste0( " and STATYPE <= ",S," and HAUL <= ",H," and GEARCOND <= ", G) 
-  #} else TowCoding=paste0(" and TYPE_CODE <= ", Type, " and OPERATION_CODE <= ", Operation, " and GEAR_CODE <= ", Gear) 
   
   #STATION location data 
   q.sta <- paste("select cruise6, stratum, tow, station, shg, svvessel, svgear, est_year, est_month, est_day, ",
@@ -62,22 +60,21 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                  ," order by cruise6, stratum, tow, station", sep = '')
   
   sta.view <- sqlQuery(oc,q.sta) 
-  #print(head(sta.view))
+  
   shg = cbind.data.frame(S= as.integer(substr(sta.view$SHG,1,1)),H = as.integer(substr(sta.view$SHG,2,2)),G = as.integer(substr(sta.view$SHG,3,3)))
   toga = cbind.data.frame(T = sta.view$TYPE_CODE, O = sta.view$OPERATION_CODE, G = sta.view$GEAR_CODE, A = sta.view$ACQUISITION_CODE)
   #SHG OR TOGA filter below
   if(as.integer(substr(paste(survey),1,4))<2009) {sta.view = sta.view[shg$S <= S & shg$H <= H & shg$G <= G,]
   } else sta.view = sta.view[toga$T <= Type & toga$O <= Operation & toga$G <= Gear,] #A not used
-  #print("sta.view")
-  #print(head(sta.view))
+
   temp <- str.size[match(sta.view$STRATUM, str.size$STRATUM),]
   sta.view <- cbind(sta.view, temp[,-1])
   
   #Add station specific swept area
-  
   q.sta.sweptarea <- paste0("select cruise6, station, area_swept_wings_mean_km2 from svdbs.tow_evaluation ",
                             "where cruise6 = ", survey)
   sta.sweptarea <- sqlQuery(oc,q.sta.sweptarea)
+  
   temp2 <- sta.sweptarea[match(sta.view$STATION,sta.sweptarea$STATION),]
   tow_swept_area = ifelse(sta.view$SVVESSEL[1]=='HB', 0.007, 0.01) #changes for smaller swept area during Bigelow years
   sta.view <- cbind(sta.view, AREA_SWEPT_WINGS_MEAN_KM2 = temp2[,c(-1,-2)])
@@ -93,7 +90,6 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   #print(sta.view[which(is.na(sta.view$STRATUM)),])
   sta.view<-sta.view[which(!is.na(sta.view$STRATUM)),] #this should remove it.
   
-  
   #CATCH data
   q.cat <- paste("select cruise6, stratum, tow, station, svspp, catchsex, expcatchwt, expcatchnum from svdbs.union_fscs_svcat ",
                  "where cruise6 = ", survey
@@ -102,6 +98,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                  , " and STRATUM IN ('", paste(strata, collapse = "','"), "')",
                  " and svspp = ", spp, " order by cruise6, stratum, tow, station", sep = '')
   cat.view <- sqlQuery(oc,q.cat)
+
   #merge catch data and station location information
   catch.data <- merge(sta.view, cat.view, by = c('CRUISE6','STRATUM','TOW','STATION'),  all.x = T, all.y=F)
   #convert NA to 0 in catch number and weight
@@ -111,7 +108,10 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   catch.data=catch.data[!is.na(catch.data$CRUISE6),]
   #Remove instances of infinite catch (I can't believe we have to check for this!)
   catch.data=catch.data[is.finite(catch.data$EXPCATCHNUM) & is.finite(catch.data$EXPCATCHWT),]
+  #Remove Na CATCHSEX variables that cause problems later 
+  catch.data$CATCHSEX=ifelse(is.na(catch.data$CATCHSEX),0,catch.data$CATCHSEX)
   
+
   #gear conversion - expand catch using a particular gear by the gear conversion factor.
   if(any(catch.data$SVGEAR %in% c(41,45))) { #This is an error trap for no gear of this type being in catch data
     catch.data$EXPCATCHNUM[which(is.element(catch.data$SVGEAR, c(41,45)))] <- 
@@ -119,6 +119,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     catch.data$EXPCATCHWT[which(is.element(catch.data$SVGEAR, c(41,45)))] <- 
       as.numeric(gcf.w) * catch.data$EXPCATCHWT[which(is.element(catch.data$SVGEAR, c(41,45)))]
   }
+    
   #door conversion 
   if(any(catch.data$EST_YEAR< 1985)) { #This is an error trap for no years < 1985
     catch.data$EXPCATCHNUM[which(catch.data$EST_YEAR< 1985)] <- 
@@ -126,6 +127,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     catch.data$EXPCATCHWT[which(catch.data$EST_YEAR< 1985)] <- 
       as.numeric(dcf.w) * catch.data$EXPCATCHWT[which(catch.data$EST_YEAR< 1985)]
   }
+        
   #vessel conversion
   if(any(catch.data$SVVESSEL[which(!is.na(catch.data$SVVESSEL))] == 'DE')) { #This is an error trap for no DE vessel observations in catch data
     catch.data$EXPCATCHNUM[which(catch.data$SVVESSEL == 'DE')] <- 
@@ -133,6 +135,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')] <- 
       as.numeric(vcf.w) * catch.data$EXPCATCHWT[which(catch.data$SVVESSEL == 'DE')]
   }
+           
   #Bigelow conversion to Albatross series
   if(do.Albatross & !do.AlbLen & any(catch.data$EST_YEAR>2008)){
     if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
@@ -146,7 +149,11 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       }
     }
   } 
+ 
   #Albatross conversion to Bigelow series
+  
+  #%%%%%%%%%%%%%%%%%% WHY ARE WE APPLYING THE SAME CONVERSION HERE AND BELOW ??? %%%%%%%%%%%
+  # SHOULDN"T ONE BE A DIVISION ???? 
   if(do.Bigelow & any(catch.data$EST_YEAR<2009)){
     if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
       if(catch.data$CRUISE6[1] %in% fall.cruises){
@@ -159,6 +166,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       }
     }
   } 
+               
   #Albatross conversion to Bigelow series
   if(do.Bigelow & !do.BigLen & any(catch.data$EST_YEAR<2009)){
     if(species$BIGELOWCALTYPE[species$SVSPP==spp] != 'NONE'){
@@ -172,6 +180,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       }
     }
   }
+
   #Account for new swept area conversions
   if(swept_area){  
     catch.data$EXPCATCHNUM = catch.data$EXPCATCHNUM * catch.data$SWEPT_AREA_RATIO
@@ -181,7 +190,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
   m <- sapply(str.size$STRATUM, function(x) sum(sta.view$STRATUM == x))
   M <- str.size$ExpArea #This is the proportional relationship between the area of the stratum and area of a tow...
   #This is a sum of the catch over each stratum
-  
+
   samp.tot.n.w <- t(sapply(str.size$STRATUM, 
                            function(x) apply(catch.data[which(catch.data$STRATUM== x),c('EXPCATCHNUM','EXPCATCHWT')],2,sum)))
   #variance covariance matrix of each catch variable (why do we need covariance?)
@@ -202,11 +211,26 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
                    "where cruise6 = ", survey, " and STRATUM IN('", paste(strata, collapse = "','"), "')",
                    "and svspp = ", spp, " order by cruise6, stratum, tow, station, svspp, catchsex", sep = '')
     len.view <- sqlQuery(oc,q.len)
+    #print(str(len.view))
     len.data <- merge(catch.data, len.view, by = c('CRUISE6','STRATUM','TOW','STATION','CATCHSEX'),  all.x=T, all.y = F)
+    #This merge has introduces some NA lengths...
+    
+    # summary(len.data$LENGTH)
+    # summary(len.view$LENGTH)
+    # #why are there na lengths all of a sudden?
+    # names(catch.data)%in%names(len.view)
+    # summary(catch.data$CATCHSEX) #A Hah!
+    
+    
+    
     len.data$EXPNUMLEN=ifelse(is.na(len.data$EXPNUMLEN),0,len.data$EXPNUMLEN)
+    #summary(len.data$EXPNUMLEN)
     
+    
+
     if(swept_area) len.data$EXPNUMLEN = len.data$EXPNUMLEN * len.data$SWEPT_AREA_RATIO
-    
+    #summary(len.data$EXPNUMLEN) # - this changes the median & upper quantiles a bit    
+
     #gear conversion - expand numbers at length using a particular gear by the gear conversion factor.
     if(any(len.data$SVGEAR %in% c(41,45))) { #This is an error trap for no gear of this type being in catch data
       len.data$EXPNUMLEN[which(is.element(len.data$SVGEAR, c(41,45)))] <- 
@@ -223,16 +247,44 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
         as.numeric(vcf.n) * len.data$EXPNUMLEN[which(len.data$SVVESSEL == 'DE')]
     }
         
+
     #cal.Nal.hat.stratum = Nal.hat.stratum
     for(i in 1:length(lengths))
     {
-      if(do.Bigelow & do.BigLen & catch.data$EST_YEAR[1]<2009){ 
-        len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] * big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
+      if(do.Bigelow & do.BigLen & any(catch.data$EST_YEAR<2009)){ 
+        len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] * 
+          big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
       }
-      if(do.Albatross & do.AlbLen & catch.data$EST_YEAR[1]>2008){ 
-        len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] / big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
+      if(do.Albatross & do.AlbLen & any(catch.data$EST_YEAR>2008)){ 
+        len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] / 
+          big.len.calib$CALIBRATION_FACTOR[big.len.calib$SVSPP == spp & big.len.calib$LENGTH == lengths[i]]
       }
+     #Condition where there is a Bigelow/Albatross conversion, but it is not length based #%%%%%%%%%%%%%%%% Added 3/8/21 DRH %%%%%%%%%
+      if(do.Bigelow & !do.BigLen & any(catch.data$EST_YEAR<2009)){ 
+        if(any(catch.data$CRUISE6 %in% fall.cruises)) {
+          len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- 
+          len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] * species$FALLNUM[species$SVSPP==spp]
+          }
+        if(any(catch.data$CRUISE6 %in% spring.cruises)) {
+          len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- 
+          len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] * species$SPRNUM[species$SVSPP==spp]
+          }
+      }
+      
+      if(do.Albatross & !do.AlbLen & any(catch.data$EST_YEAR>2008) ){ 
+        if(any(catch.data$CRUISE6 %in% spring.cruises)){
+          len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- 
+          len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] / species$SPRNUM[species$SVSPP==spp]
+        }
+        if(any(catch.data$CRUISE6 %in% fall.cruises)){
+          len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] <- 
+          len.data$EXPNUMLEN[which(len.data$LENGTH == lengths[i])] / species$FALLNUM[species$SVSPP==spp]
+        }
+      }        
+      
     }
+    
+
     
     #Build in a place holder for bootstrapping length data
     if(boot){
@@ -244,7 +296,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     #if(max(len.data$LENGTH, na.rm= T) > max(lengths)) warning(paste('max of lengths in length data = ', max(len.data$LENGTH, na.rm= T), ' whereas max of lengths given is ', max(lengths), sep = ''))
     #Changing this so the warning message is reported through the app rather than the console
     
-    Lrange=range(len.data$LENGTH,na.rm = TRUE) #will report this back to the app and then determine if the user has missed some lengths
+    Lrange=suppressWarnings(range(len.data$LENGTH,na.rm = TRUE)) #will report this back to the app and then determine if the user has missed some lengths
     
     #nested sapply! This sums the numbers at length in each stratum over each of the user specified lengths
     #result is a matrix with a row for each stratum and a col for each length
@@ -290,7 +342,7 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
     
     if(do.age){
       #AGE
-      species <- read.csv('files/speciesTable.csv')
+      if(is.null(species)) species <- read.csv('files/speciesTable.csv')
       BigRange=(species[which(species$SVSPP==spp),c("MINA","MAXA")]) #need this for the multinomial fit
       BigAge=seq(as.numeric(BigRange[1]),as.numeric(BigRange[2]))
       q.age <- paste("select  cruise6, stratum, tow, station, sex, length, age, indwt, maturity from svdbs.union_fscs_svbio ",
@@ -299,62 +351,49 @@ get.survey.stratum.estimates.2.fn <- function(spp=NULL,
       age.view <- sqlQuery(oc,q.age)
       #age.data <- merge(len.data, age.view, by = c('CRUISE6','STRATUM','TOW','STATION','LENGTH'),  all.x = T, all.y=F)
       WtLenEx<- merge(len.data, age.view, by = c('CRUISE6','STRATUM','TOW','STATION','LENGTH'),  all.x = T, all.y=F)
-      if(swept_area) WtLenEx$EXPNUMLEN = WtLenEx$EXPNUMLEN * WtLenEx$SWEPT_AREA_RATIO
+      
+      #summary(WtLenEx$EXPNUMLEN) #matches the stats on line 223 (sweptarea should not be applied again) %%%%% DRH change 3/1/21
+      #if(swept_area) WtLenEx$EXPNUMLEN = WtLenEx$EXPNUMLEN * WtLenEx$SWEPT_AREA_RATIO
       
       #Need to generate age-length keys here and then apply to the length composition
+      #This routine is generating multinomial fit even when the ALK has no holes. Probably why the ALK do not match STOCKEFF
       
       #Need to make sure we have data at this stage to proceed (requires more than one age too)
       if(nrow(WtLenEx[!is.na(WtLenEx$AGE),])>0) {
-        #Multinomial age length key generation
-        #From Jon.... 
-        #library(nnet) #required for multinom in get.mult.props function below
-        # function to compute proportions of age at length using multinomial approach
-        # based on code from Mike Bednarski and then stolen from ADIOS again
-        get.mult.props<-function(big.len=NULL,big.age=NULL,ref.age=NULL){
-          data<-WtLenEx[!is.na(WtLenEx$AGE) & WtLenEx$AGE%in%big.age,]
-          #data$AGE <- relevel(as.factor(data$AGE), ref=ref.age) # relevel and make categorical
-          data$AGE <- as.factor(data$AGE)
-          my.levels <- as.numeric(levels(data$AGE))
-          n.levels <- length(my.levels)
-          mn<-nnet::multinom(AGE ~ LENGTH, data=data,verbose=F)
-          Parameters <- coefficients(mn) # Parameters for multinomial key
-          newdata <- data.frame(cbind(LENGTH = big.len)) # length values
-          logits <- matrix(NA, nrow=length(big.len), ncol=length(my.levels))
-          logits[,1] <- rep(0,nrow(newdata)) # reference age
-          for (i in 1:(n.levels-1)){
-            logits[,(i+1)] <- Parameters[i] + Parameters[(n.levels-1+i)]*newdata$LENGTH
+        #First check to see if there are any holes that need filling - length bins without ages
+        MissingLengths=lengths[lengths%notin%WtLenEx$LENGTH[!is.na(WtLenEx$AGE)]]
+        if(length(MissingLengths)>0) { #these are the bins we need filled
+          #Can only fit this if there is more than one age!
+          if(length(unique(WtLenEx$AGE[!is.na(WtLenEx$AGE)]))>1) {
+            #The multnomial should fit to all the ages in the data and then clip to the user specified range afterwards
+            mult.props<- get.mult.props(big.len=MissingLengths,big.age=BigAge, data=WtLenEx[!is.na(WtLenEx$AGE) & WtLenEx$AGE%in%BigAge,])
+            #We now have the missing lengths in rows and the ages in columns
+          } else { #if there is only one age then you have 100% in one row
+            p <- matrix(0, nrow=length(lengths), ncol=(max(ages)+1))
+            p[min(WtLenEx$LENGTH[!is.na(WtLenEx$AGE)]):max(WtLenEx$LENGTH[!is.na(WtLenEx$AGE)])
+              ,(unique(WtLenEx$AGE[!is.na(WtLenEx$AGE)])+1)]=1
+            colnames(p)<-c(paste("pred.",ages, sep=""))
+            mult.props=p 
           }
-          # new code: to handle logit returns of large numbers
-          for (i in 1:n.levels){
-            logits[logits[,i] >= 500,i] <- 500
-          }
-          p.unscaled <- exp(logits)
-          p.normalized <- p.unscaled / rowSums(p.unscaled)
-          p <- matrix(0, nrow=length(big.len), ncol=length(big.age)) # note starting at min big.age
-          for (i in 1:n.levels){
-            #p[,(my.levels[i]+1)] <- p.normalized[,i]
-            p[,which(my.levels[i]==big.age)] <- p.normalized[,i]
-          }
-          colnames(p)<-c(paste("pred.",big.age, sep=""))
-          return(p)
-        } #end get.mult.props function
+        }
+        #Create an age legth key from multi.props (the multinomial fit to the missing data)
+        ALK=as.data.frame(matrix(NA,ncol=length(BigAge),nrow=length(lengths)))
+        row.names(ALK)=paste(lengths);names(ALK)=paste(BigAge);
+        ALK[which(row.names(ALK)%in%MissingLengths),]=mult.props
         
-        #Can only fit this if there is more than one age!
-        if(length(unique(WtLenEx$AGE[!is.na(WtLenEx$AGE)]))>1) {
-          #The multnomial should fit to all the ages in the data and then clip to the user specified range afterwards
-          mult.props<- get.mult.props(big.len=(lengths),big.age=BigAge)
-          #,ref.age = 3) #don't think we need this
-        } else { #if there is only one age then you have 100% in one row
-          p <- matrix(0, nrow=length(lengths), ncol=(max(ages)+1))
-          p[min(WtLenEx$LENGTH[!is.na(WtLenEx$AGE)]):max(WtLenEx$LENGTH[!is.na(WtLenEx$AGE)])
-            ,(unique(WtLenEx$AGE[!is.na(WtLenEx$AGE)])+1)]=1
-          colnames(p)<-c(paste("pred.",ages, sep=""))
-          mult.props=p 
+        #Fill the rest of the ALK from data - calculate proportion at age for each length
+        LengthsWeHave<-lengths[lengths%in%WtLenEx$LENGTH[!is.na(WtLenEx$AGE)]]
+        for(i in LengthsWeHave){
+          AgeAtLength<-WtLenEx$AGE[WtLenEx$LENGTH==i & !is.na(WtLenEx$AGE)]
+          denom<-length(AgeAtLength)
+          tFunc<-function(BigAge,AgeAtLength) {sum(AgeAtLength%in%BigAge)}
+          val=sapply(BigAge,tFunc,AgeAtLength=AgeAtLength)/denom
+          ALK[which(row.names(ALK)==paste(i)),] = val #have to fit the rows made in val in here in the right place
         }
         
         #Now apply the age length key to the length distribution to get numbers at age  
         Naa.hat.stratum=c()
-        Naa.hat.stratum=Nal.hat.stratum%*%mult.props #should give numbers at age for each stratum...
+        Naa.hat.stratum=Nal.hat.stratum%*%as.matrix(ALK) #should give numbers at age for each stratum...
         #remove the stupid factors!
         Naa.hat.stratum=matrix(as.numeric(paste(Naa.hat.stratum)),nrow=nrow(Naa.hat.stratum))
         #Naa.hat.stratum=rbind(Naa.hat.stratum,"Total"=colSums(Naa.hat.stratum)) #add a row for the total - this is done in App.R
@@ -447,3 +486,41 @@ showNotification2 <- function (ui, action = NULL, duration = 5, closeButton = TR
   id
 }
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+`%notin%` <- Negate(`%in%`) #stupid little function to avoid mistakes using !%in% (which doesn't work)
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#Multinomial age length key generation
+#From Jon.... 
+#library(nnet) #required for multinom in get.mult.props function below
+# function to compute proportions of age at length using multinomial approach
+# based on code from Mike Bednarski and then stolen from ADIOS again
+get.mult.props<-function(big.len=NULL,big.age=NULL,ref.age=NULL, data=NULL){
+  # relevel and make categorical
+  data$AGE <- as.factor(data$AGE)
+  my.levels <- as.numeric(levels(data$AGE))
+  n.levels <- length(my.levels)
+  mn<-nnet::multinom(AGE ~ LENGTH, data=data,verbose=F)
+  Parameters <- coefficients(mn) # Parameters for multinomial key
+  newdata <- data.frame(cbind(LENGTH = big.len)) # length values
+  logits <- matrix(NA, nrow=length(big.len), ncol=length(my.levels))
+  logits[,1] <- rep(0,nrow(newdata)) # reference age
+  for (i in 1:(n.levels-1)){
+    logits[,(i+1)] <- Parameters[i] + Parameters[(n.levels-1+i)]*newdata$LENGTH
+  }
+  # new code: to handle logit returns of large numbers
+  for (i in 1:n.levels){
+    logits[logits[,i] >= 500,i] <- 500
+  }
+  p.unscaled <- exp(logits)
+  p.normalized <- p.unscaled / rowSums(p.unscaled)
+  p <- matrix(0, nrow=length(big.len), ncol=length(big.age)) # note starting at min big.age
+  for (i in 1:n.levels){
+    #p[,(my.levels[i]+1)] <- p.normalized[,i]
+    p[,which(my.levels[i]==big.age)] <- p.normalized[,i]
+  }
+  colnames(p)<-c(paste("pred.",big.age, sep=""))
+  return(p)
+} #end get.mult.props function
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+        
